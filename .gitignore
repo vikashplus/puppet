@@ -1,0 +1,14 @@
+MUJOCO_LOG.TXT
+.git
+
+# visual studioes
+*.user
+.vs
+
+# cyberGlove
+cyberglove/bin/*
+cyberglove/calib/*
+
+# vive 
+#vive/bin/*
+.psd

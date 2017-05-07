@@ -1,3 +1,3 @@
 # my_teleOp
 
-Project for enabling support for hand tele operation
+This project brings together HTC Vive and Cyber Glove to enable teleOp in emersive VR

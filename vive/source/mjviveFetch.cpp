@@ -922,7 +922,7 @@ void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
         + 3 * m->nmocap + 4 * m->nmocap + m->nsensordata));
 	static FILE* logfile = nullptr;
 
-    if (initFlag)
+    if (initFlag&&!closeFile)
     {
         char timestr[50];
         char name[100];
@@ -953,8 +953,11 @@ void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
     }
 
 	// close if requested
-	if(closeFile&&initFlag)
-		fclose(logfile);
+	if(closeFile)
+	{	if(logfile!=nullptr)
+			fclose(logfile);
+		return;
+	}
 
     // prepare float buffer
     

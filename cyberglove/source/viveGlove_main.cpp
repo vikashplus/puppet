@@ -337,11 +337,20 @@ void v_initPre(void)
 
         // found HMD
         if( cls==TrackedDeviceClass_HMD )
-            hmd.id = n;
-
+		{	
+			printf("Headset (id:%d) found\n", n);
+			hmd.id = n;
+		}
         // found Controller: max 2 supported
-        else if( cls==TrackedDeviceClass_Controller && cnt<2 )
+        else if(cls==TrackedDeviceClass_Controller && cnt<2 )
         {
+			printf("Controller (id:%d) found\n", n);
+            ctl[cnt].id = n;
+            cnt++;
+        }
+		else if (cls==TrackedDeviceClass_GenericTracker)
+		{
+			printf("Tracker (id:%d) found\n", n);
             ctl[cnt].id = n;
             cnt++;
         }
@@ -553,7 +562,7 @@ void v_update(void)
 
             // update axis data
             VRControllerState_t state;
-            hmd.system->GetControllerState(ctl[n].id, &state);
+            hmd.system->GetControllerState(ctl[n].id, &state, sizeof(VRControllerState_t));
             ctl[n].triggerpos = state.rAxis[ctl[n].idtrigger].x;
             ctl[n].padpos[0] = state.rAxis[ctl[n].idpad].x;
             ctl[n].padpos[1] = state.rAxis[ctl[n].idpad].y;
@@ -886,7 +895,7 @@ void v_render(void)
     // submit to vr
     const VRTextureBounds_t boundLeft = {0, 0, 0.5, 1};
     const VRTextureBounds_t boundRight = {0.5, 0, 1, 1};
-    Texture_t vTex = {(void*)hmd.idtex, API_OpenGL, ColorSpace_Gamma};
+	Texture_t vTex = {(void*)hmd.idtex, TextureType_OpenGL, ColorSpace_Gamma};
     VRCompositor()->Submit(Eye_Left, &vTex, &boundLeft);
     VRCompositor()->Submit(Eye_Right, &vTex, &boundRight);
 

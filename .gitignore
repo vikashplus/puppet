@@ -1,6 +1,6 @@
 MUJOCO_LOG.TXT
 .git
-
+.bak
 # visual studioes
 *.user
 .vs
@@ -10,5 +10,5 @@ cyberglove/bin/*
 cyberglove/calib/*
 
 # vive 
-#vive/bin/*
+vive/bin/*
 .psd

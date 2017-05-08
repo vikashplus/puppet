@@ -1,7 +1,12 @@
 # Vive C driver
 
+## Build 
+1. Open VS2015 x64 Native Tools Command Prompt
+2. Make sure environment variable "MUJOCOPATH" exists, and is correct, using the command "SET MUJOCOPATH"
+3. Use "nmake" to build the project and "nmake clean" to clean the project
+
 ## usage
-From terminal type "mjvive.exe <model_xml_withPath> <log_filename>" to run the compiled executable. <log_filename> is optional for dumping logs. Logs are dumped in mujoco's .mjl format. Refer [Mujoco documenation](http://www.mujoco.org/book/haptix.html#uiRecord) for details.  
+Use "mjvive.exe <model_xml_withPath> <log_filename>" to run the compiled executable. <log_filename> is optional for dumping logs. Logs are dumped in mujoco's .mjl format. Refer [Mujoco documenation](http://www.mujoco.org/book/haptix.html#uiRecord) for details.  
 
 ## Requirement
 Vive headset and a minimum of one active controller

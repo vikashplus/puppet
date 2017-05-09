@@ -16,7 +16,7 @@ Vive headset and a minimum of one active controller
 
 ## Special cases 
 
-### Controller configuration
+### Controller/Mocap configuration
 Am xml with a mocap body called "mocap0/mocap1" get gets associated with controller0/controller1 and places the controller in the "vTOOL_PULL" mode.
 
 ### Fetch

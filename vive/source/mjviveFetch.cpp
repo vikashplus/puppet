@@ -1031,11 +1031,14 @@ void init_controller()
 
 void user_perturbations(int ctl_n)
 {
+	// Control gripper if fetch
 	if (trackMocap[ctl_n] == true)
 	{
 		int rGripper = mj_name2id(m, mjOBJ_ACTUATOR, "r_gripper_finger_joint");
 		int lGripper = mj_name2id(m, mjOBJ_ACTUATOR, "l_gripper_finger_joint");
-		if((rGripper!=-1)&&(lGripper!=-1)) // engage only if both are found
+		
+		// engage only if both are found
+		if((rGripper!=-1)&&(lGripper!=-1)) 
 		{
 			const double scale = 1.0;
 			ctl[ctl_n].triggerpos *= 1.5;

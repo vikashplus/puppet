@@ -24,6 +24,8 @@ mjrContext con;
 GLFWwindow* window;
 double frametime = 0;
 bool trackMocap[2] = {false, false};
+int virtual_controllerButton = -1; // use keyboard te emulate controller keys
+
 //-------------------------------- MuJoCo functions -------------------------------------
 
 // load model, init simulation and rendering; return 0 if error, 1 if ok
@@ -152,11 +154,11 @@ void keyboard(GLFWwindow* window, int key, int scancode, int act, int mods)
         break;
 
 	case GLFW_KEY_F7:
-		trackMocap[0] = !trackMocap[0];
+		virtual_controllerButton = GLFW_KEY_F7;
 		break;
 
 	case GLFW_KEY_F8:
-		trackMocap[1] = !trackMocap[1];
+		virtual_controllerButton = GLFW_KEY_F8;
 		break;
 
     case GLFW_KEY_BACKSPACE:
@@ -681,6 +683,18 @@ void v_update(void)
                 break;
             }
         }
+
+	// Process virtual keys
+	switch(virtual_controllerButton)
+	{
+	case GLFW_KEY_F7:
+		trackMocap[0] = !trackMocap[0];
+		break;
+	case GLFW_KEY_F8:
+		trackMocap[1] = !trackMocap[1];
+		break;
+	}
+	virtual_controllerButton = -1; // mark as processed
 
     // finish controller update, after processing events
     for( n=0; n<2; n++ )

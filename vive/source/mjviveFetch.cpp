@@ -23,7 +23,7 @@ mjvPerturb pert;
 mjrContext con;
 GLFWwindow* window;
 double frametime = 0;
-bool trackMocap = false;
+bool trackMocap[2] = {false, false};
 //-------------------------------- MuJoCo functions -------------------------------------
 
 // load model, init simulation and rendering; return 0 if error, 1 if ok
@@ -150,6 +150,14 @@ void keyboard(GLFWwindow* window, int key, int scancode, int act, int mods)
     case '/':                           // next label mode
         vopt.label = mjMIN(mjNLABEL-1, vopt.label+1);
         break;
+
+	case GLFW_KEY_F7:
+		trackMocap[0] = !trackMocap[0];
+		break;
+
+	case GLFW_KEY_F8:
+		trackMocap[1] = !trackMocap[1];
+		break;
 
     case GLFW_KEY_BACKSPACE:
 		if(m->nkey>0)
@@ -596,7 +604,7 @@ void v_update(void)
 
 				// disable tracking if setting changes
 				if((button != vBUTTON_SIDE) && (button != vBUTTON_TRIGGER) )
-					trackMocap = false;
+					trackMocap[n] = false;
 
                 // trigger button: save relative pose
                 if( button==vBUTTON_TRIGGER )
@@ -646,7 +654,7 @@ void v_update(void)
                 else if( button==vBUTTON_SIDE )
                 {
                     // user can trigger custom action here
-					trackMocap = !trackMocap;
+					trackMocap[n] = !trackMocap[n];
                 }
 
                 break;
@@ -679,7 +687,7 @@ void v_update(void)
         if( ctl[n].id>=0 )
         {
 			// record relative pose
-			if((!trackMocap) && !ctl[n].hold[vBUTTON_TRIGGER])
+			if((!trackMocap[n]) && !ctl[n].hold[vBUTTON_TRIGGER])
 			{				
 				mjtNum negp[3], negq[4], xiquat[4];
 				mju_mulQuat(xiquat, d->xquat + 4 * ctl[n].body, m->body_iquat + 4 * ctl[n].body);
@@ -688,9 +696,10 @@ void v_update(void)
 			}
 
             // update target pose
-            if( (ctl[n].hold[vBUTTON_TRIGGER] && ctl[n].tool!=vTOOL_MOVE ) || (trackMocap && ctl[n].tool != vTOOL_MOVE) )
-                mju_mulPose(ctl[n].targetpos, ctl[n].targetquat, 
+            if( (ctl[n].hold[vBUTTON_TRIGGER] && ctl[n].tool!=vTOOL_MOVE ) || (trackMocap[n] && ctl[n].tool != vTOOL_MOVE) )
+			{    mju_mulPose(ctl[n].targetpos, ctl[n].targetquat, 
                     ctl[n].pos, ctl[n].quat, ctl[n].relpos, ctl[n].relquat);
+			}
             else
             {
                 mju_copy3(ctl[n].targetpos, ctl[n].pos);
@@ -1006,6 +1015,23 @@ int main(int argc, const char** argv)
     // set keyboard callback
     glfwSetKeyCallback(window, keyboard);
 
+	// configure controllers
+	int mocap0 = mj_name2id(m, mjOBJ_BODY, "mocap0");
+	int mocap1 = mj_name2id(m, mjOBJ_BODY, "mocap1");
+	if((mocap0!=-1)&&(ctl[0].id!=-1))
+	{	ctl[0].body = mocap0;
+		ctl[0].tool = vTOOL_PULL;
+	}
+	else
+		ctl[0].tool = vTOOL_MOVE;
+	
+	if((mocap1!=-1)&&(ctl[0].id!=-1))
+	{	ctl[1].body = mocap1;
+		ctl[1].tool = vTOOL_PULL;
+	}
+	else
+		ctl[1].tool = vTOOL_MOVE;
+	
     // main loop
     double lasttm = glfwGetTime(), FPS = 90;
     frametime = d->time;
@@ -1043,7 +1069,7 @@ int main(int argc, const char** argv)
         mju_zero(d->xfrc_applied, 6*m->nbody);
         for( int n=0; n<2; n++ )
             if( ctl[n].valid && ctl[n].tool==vTOOL_PULL && 
-                ctl[n].body>0 && (ctl[n].hold[vBUTTON_TRIGGER]||trackMocap==true))
+                ctl[n].body>0 && (ctl[n].hold[vBUTTON_TRIGGER]||trackMocap[n]==true))
             {
                 // perpare mjvPerturb object
                 pert.active = mjPERT_TRANSLATE | mjPERT_ROTATE;
@@ -1056,7 +1082,7 @@ int main(int argc, const char** argv)
                 mjv_applyPerturbForce(m, d, &pert);
 
 				// update gripper
-				if (trackMocap == true)
+				if (trackMocap[n] == true)
 				{
 					int rGripper = mj_name2id(m, mjOBJ_ACTUATOR, "r_gripper_finger_joint");
 					int lGripper = mj_name2id(m, mjOBJ_ACTUATOR, "l_gripper_finger_joint");

@@ -1,3 +1,14 @@
+/* =================================================================
+// Copyright: (c) Vikash Kumar, Ph.D. Thesis, CSE, Univ. of Washington. 2016.
+
+// Source: Advanced physics simulation engine, Mujoco 1.40, www.roboti.us
+
+// Licensed under Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+// The above copyright notice and this permission notice shall be included in all copies of the software.
+================================================================= */
+
+
 #include "mujoco.h"
 #include "stdio.h"
 #include "stdlib.h"
@@ -998,6 +1009,46 @@ void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
     fwrite((void*)writebuf, sizeof(float), wpos, logfile);
 }
 
+// configure controllers
+void init_controller()
+{
+	int mocap0 = mj_name2id(m, mjOBJ_BODY, "mocap0");
+	int mocap1 = mj_name2id(m, mjOBJ_BODY, "mocap1");
+	if((mocap0!=-1)&&(ctl[0].id!=-1))
+	{	ctl[0].body = mocap0;
+		ctl[0].tool = vTOOL_PULL;
+	}
+	else
+		ctl[0].tool = vTOOL_MOVE;
+	
+	if((mocap1!=-1)&&(ctl[0].id!=-1))
+	{	ctl[1].body = mocap1;
+		ctl[1].tool = vTOOL_PULL;
+	}
+	else
+		ctl[1].tool = vTOOL_MOVE;
+}
+
+void user_perturbations(int ctl_n)
+{
+	if (trackMocap[ctl_n] == true)
+	{
+		int rGripper = mj_name2id(m, mjOBJ_ACTUATOR, "r_gripper_finger_joint");
+		int lGripper = mj_name2id(m, mjOBJ_ACTUATOR, "l_gripper_finger_joint");
+		if((rGripper!=-1)&&(lGripper!=-1)) // engage only if both are found
+		{
+			const double scale = 1.0;
+			ctl[ctl_n].triggerpos *= 1.5;
+			ctl[ctl_n].triggerpos > 1.0 ? 1.0 : 0.0;
+			d->ctrl[rGripper] = m->actuator_ctrlrange[2 * rGripper] + scale*(1.0 - ctl[ctl_n].triggerpos)*
+				(m->actuator_ctrlrange[2 * rGripper + 1] - m->actuator_ctrlrange[2 * rGripper]);;
+			d->ctrl[lGripper] = m->actuator_ctrlrange[2 * lGripper] + (1.0 - ctl[ctl_n].triggerpos)*
+				(m->actuator_ctrlrange[2 * lGripper + 1] - m->actuator_ctrlrange[2 * rGripper]);
+		}
+	}
+}
+
+
 // main
 int main(int argc, const char** argv)
 {
@@ -1030,21 +1081,7 @@ int main(int argc, const char** argv)
     glfwSetKeyCallback(window, keyboard);
 
 	// configure controllers
-	int mocap0 = mj_name2id(m, mjOBJ_BODY, "mocap0");
-	int mocap1 = mj_name2id(m, mjOBJ_BODY, "mocap1");
-	if((mocap0!=-1)&&(ctl[0].id!=-1))
-	{	ctl[0].body = mocap0;
-		ctl[0].tool = vTOOL_PULL;
-	}
-	else
-		ctl[0].tool = vTOOL_MOVE;
-	
-	if((mocap1!=-1)&&(ctl[0].id!=-1))
-	{	ctl[1].body = mocap1;
-		ctl[1].tool = vTOOL_PULL;
-	}
-	else
-		ctl[1].tool = vTOOL_MOVE;
+	init_controller();
 	
     // main loop
     double lasttm = glfwGetTime(), FPS = 90;
@@ -1095,22 +1132,8 @@ int main(int argc, const char** argv)
                 mjv_applyPerturbPose(m, d, &pert, 0);
                 mjv_applyPerturbForce(m, d, &pert);
 
-				// update gripper
-				if (trackMocap[n] == true)
-				{
-					int rGripper = mj_name2id(m, mjOBJ_ACTUATOR, "r_gripper_finger_joint");
-					int lGripper = mj_name2id(m, mjOBJ_ACTUATOR, "l_gripper_finger_joint");
-					if((rGripper!=-1)&&(lGripper!=-1)) // engage only if both are found
-					{
-						const double scale = 1.0;
-						ctl[n].triggerpos *= 1.5;
-						ctl[n].triggerpos > 1.0 ? 1.0 : 0.0;
-						d->ctrl[rGripper] = m->actuator_ctrlrange[2 * rGripper] + scale*(1.0 - ctl[n].triggerpos)*
-							(m->actuator_ctrlrange[2 * rGripper + 1] - m->actuator_ctrlrange[2 * rGripper]);;
-						d->ctrl[lGripper] = m->actuator_ctrlrange[2 * lGripper] + (1.0 - ctl[n].triggerpos)*
-							(m->actuator_ctrlrange[2 * lGripper + 1] - m->actuator_ctrlrange[2 * rGripper]);
-					}
-				}
+				// Apply user custom perturbations
+				user_perturbations(n);
             }
 
         // simulate
@@ -1123,6 +1146,7 @@ int main(int argc, const char** argv)
         // update GUI
         glfwPollEvents();
     }
+	printf("Main:>\t Done\n");
 
     // close
 	write_logs(m, d, log_filename, true);

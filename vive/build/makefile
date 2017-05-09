@@ -4,7 +4,6 @@ COMMON=/O2 /MT /EHsc /I$(MJ_PATH)/include $(MJ_PATH)/bin/mujoco140.lib $(MJ_PATH
 
 all:
 	cl $(COMMON) /I../include/openVR /I../include -DGLEW_STATIC ../source/mjViveFetch.cpp ../source/glew.c ../bin/openvr_api.lib
-	copy "..\bin\openvr_api.dll" "$(MJ_PATH)\bin\openvr_api.dll"
 	copy "$(MJ_PATH)\bin\mujoco140.dll" "..\bin\mujoco140.dll"
 	copy "$(MJ_PATH)\bin\glfw3.dll" "..\bin\glfw3.dll"
 	del *.obj

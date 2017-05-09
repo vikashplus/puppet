@@ -1,4 +1,4 @@
-MJ_PATH=../../../mujoco/mjpro140
+MJ_PATH=$(MUJOCOPATH)/mjpro140
 
 COMMON=/O2 /MT /EHsc /I$(MJ_PATH)/include $(MJ_PATH)/bin/mujoco140.lib $(MJ_PATH)/bin/glfw3.lib opengl32.lib /Fe../bin/
 

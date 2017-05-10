@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\source\glew.c">
+    <ClCompile Include="..\source\mjVive.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\source\mjviveFetch.cpp">
+    <ClCompile Include="..\sdk\GL\glew.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

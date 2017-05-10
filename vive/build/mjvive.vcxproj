@@ -10,6 +10,10 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\sdk\GL\glew.c" />
+    <ClCompile Include="..\source\mjVive.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F144BD57-E589-41C9-898A-EE00D41BBB71}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -45,14 +49,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>C:\Users\$(USERNAME)\Desktop\temp\$(ProjectName)\$(Platform)\$(Configuration)\bin\</IntDir>
-    <IncludePath>..\include;..\include\openVR;$(MUJOCOPATH)\mjpro140\include;$(IncludePath)</IncludePath>
+    <IncludePath>..\sdk;..\sdk\openVR;$(MUJOCOPATH)\mjpro140\include;$(IncludePath)</IncludePath>
     <LibraryPath>..\bin;$(MUJOCOPATH)\mjpro140\bin;$(LibraryPath)</LibraryPath>
     <OutDir>../bin/</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>C:\Users\$(USERNAME)\Desktop\temp\$(ProjectName)\$(Platform)\$(Configuration)\bin\</IntDir>
-    <IncludePath>..\include;..\include\openVR;$(MUJOCOPATH)\mjpro140\include;$(IncludePath)</IncludePath>
+    <IncludePath>..\sdk;..\sdk\openVR;$(MUJOCOPATH)\mjpro140\include;$(IncludePath)</IncludePath>
     <LibraryPath>..\bin;$(MUJOCOPATH)\mjpro140\bin;$(LibraryPath)</LibraryPath>
     <OutDir>../bin/</OutDir>
   </PropertyGroup>
@@ -90,10 +94,6 @@
       <AdditionalDependencies>mujoco140.lib;openvr_api.lib;glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="..\source\glew.c" />
-    <ClCompile Include="..\source\mjviveFetch.cpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

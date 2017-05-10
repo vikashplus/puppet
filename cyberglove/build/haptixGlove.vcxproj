@@ -44,15 +44,15 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>../../plot/include;../include;C:\Users\vikash\Desktop\Mujoco\mjhaptix131\apicpp;../utils;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\vikash\Desktop\Mujoco\mjhaptix131\apicpp;../../plot/$(Platform)/$(Configuration)/;$(LibraryPath)</LibraryPath>
+    <IncludePath>../../../plot/include;../include;C:\Users\vikash\Desktop\Mujoco\mjhaptix131\apicpp;../utils;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\vikash\Desktop\Mujoco\mjhaptix131\apicpp;../../../plot/$(Platform)/$(Configuration)/;$(LibraryPath)</LibraryPath>
     <OutDir>..\bin\</OutDir>
     <IntDir>\temp\temp\$(USERNAME)\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>../../plot/include;../include;C:\Users\vikash\Desktop\Mujoco\mjhaptix131\apicpp;../utils;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\vikash\Desktop\Mujoco\mjhaptix131\apicpp;../../plot/$(Platform)/$(Configuration)/;$(LibraryPath)</LibraryPath>
+    <IncludePath>../../../plot/include;../include;C:\Users\vikash\Desktop\Mujoco\mjhaptix131\apicpp;../utils;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\vikash\Desktop\Mujoco\mjhaptix131\apicpp;../../../plot/$(Platform)/$(Configuration)/;$(LibraryPath)</LibraryPath>
     <OutDir>..\bin\</OutDir>
     <IntDir>\temp\temp\$(USERNAME)\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>

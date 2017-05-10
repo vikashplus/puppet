@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\vive\source\glew.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\source\viveGlove_main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -28,6 +25,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\Graphics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vive\sdk\GL\glew.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

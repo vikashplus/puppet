@@ -46,14 +46,14 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>../bin/</OutDir>
     <IntDir>C:\Users\$(USERNAME)\Desktop\temp\$(ProjectName)\$(Platform)\$(Configuration)\bin\</IntDir>
-    <IncludePath>..\source;..\..\vive\include;..\..\vive\include\openVR;$(MUJOCOPATH)\mjpro140\include;..\..\..\plot\include;$(IncludePath)</IncludePath>
+    <IncludePath>..\source;..\..\vive\sdk;..\..\vive\sdk\openVR;$(MUJOCOPATH)\mjpro140\include;..\..\..\plot\include;$(IncludePath)</IncludePath>
     <LibraryPath>..\..\vive\bin;$(MUJOCOPATH)\mjpro140\bin;..\..\..\plot\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>../bin/</OutDir>
     <IntDir>C:\Users\$(USERNAME)\Desktop\temp\$(ProjectName)\$(Platform)\$(Configuration)\bin\</IntDir>
-    <IncludePath>..\source;..\..\vive\include;..\..\vive\include\openVR;$(MUJOCOPATH)\mjpro140\include;..\..\..\plot\include;$(IncludePath)</IncludePath>
+    <IncludePath>..\source;..\..\vive\sdk;..\..\vive\sdk\openVR;$(MUJOCOPATH)\mjpro140\include;..\..\..\plot\include;$(IncludePath)</IncludePath>
     <LibraryPath>..\..\vive\bin;$(MUJOCOPATH)\mjpro140\bin;..\..\..\plot\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -93,7 +93,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\vive\source\glew.c" />
+    <ClCompile Include="..\..\vive\sdk\GL\glew.c" />
     <ClCompile Include="..\source\CyberGlove.cpp" />
     <ClCompile Include="..\source\CyberGlove_utils.cpp" />
     <ClCompile Include="..\source\Graphics.cpp" />

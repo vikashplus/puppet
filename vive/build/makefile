@@ -11,6 +11,6 @@ all:
 	del *.obj
 
 clean:	
-	del ..\bin\mjVive.exe
+	del ..\bin\mjVive*
 	del ..\bin\mujoco*
 	del ..\bin\glfw3.dll

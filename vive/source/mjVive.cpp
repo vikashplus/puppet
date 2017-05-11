@@ -1029,6 +1029,7 @@ void init_controller()
 		ctl[1].tool = vTOOL_MOVE;
 }
 
+// Custom User purturbations
 void user_perturbations(int ctl_n)
 {
 	// Control gripper if fetch
@@ -1051,12 +1052,22 @@ void user_perturbations(int ctl_n)
 	}
 }
 
+// Instructions
+char* help = {
+	"-----------------------------------------------------------------\n"
+	"mjVive:\t\tEmersive experience of Mujoco Worlds using HTCVive\n"
+	"Usage:\t\tmjVive.exe <modelname> <logname(optional)>\n"
+	"Requirements:\tHTCvive with atleast one connected controller\n"
+	"-----------------------------------------------------------------\n\n"
+};
 
 // main
 int main(int argc, const char** argv)
 {
     char model_filename[100];
 	char log_filename[100] = {"none"};
+
+	printf("%s", help);
 
     // get filenames from command line or iteractively
     if( argc>=2 )

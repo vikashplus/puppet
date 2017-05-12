@@ -46,15 +46,15 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>../../vive/bin/</OutDir>
     <IntDir>C:\Users\$(USERNAME)\Desktop\temp\$(ProjectName)\$(Platform)\$(Configuration)\bin\</IntDir>
-    <IncludePath>..\source;..\..\vive\sdk;..\..\vive\sdk\openVR;$(MUJOCOPATH)\mjpro140\include;..\..\..\plot\include;$(IncludePath)</IncludePath>
-    <LibraryPath>..\..\vive\bin;$(MUJOCOPATH)\mjpro140\bin;..\..\..\plot\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>..\source;..\..\vive\sdk;..\..\vive\sdk\openVR;$(MUJOCOPATH)\mjpro150\include;..\..\..\plot\include;$(IncludePath)</IncludePath>
+    <LibraryPath>..\..\vive\bin;$(MUJOCOPATH)\mjpro150\bin;..\..\..\plot\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>../../vive/bin/</OutDir>
     <IntDir>C:\Users\$(USERNAME)\Desktop\temp\$(ProjectName)\$(Platform)\$(Configuration)\bin\</IntDir>
-    <IncludePath>..\source;..\..\vive\sdk;..\..\vive\sdk\openVR;$(MUJOCOPATH)\mjpro140\include;..\..\..\plot\include;$(IncludePath)</IncludePath>
-    <LibraryPath>..\..\vive\bin;$(MUJOCOPATH)\mjpro140\bin;..\..\..\plot\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>..\source;..\..\vive\sdk;..\..\vive\sdk\openVR;$(MUJOCOPATH)\mjpro150\include;..\..\..\plot\include;$(IncludePath)</IncludePath>
+    <LibraryPath>..\..\vive\bin;$(MUJOCOPATH)\mjpro150\bin;..\..\..\plot\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -69,7 +69,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>mujoco140.lib;openvr_api.lib;glfw3.lib;opengl32.lib;MatPlot_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>mujoco150.lib;openvr_api.lib;glfw3.lib;opengl32.lib;MatPlot_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -89,7 +89,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>mujoco140.lib;openvr_api.lib;glfw3.lib;opengl32.lib;MatPlot_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>mujoco150.lib;openvr_api.lib;glfw3.lib;opengl32.lib;MatPlot_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

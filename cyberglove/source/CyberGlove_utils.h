@@ -44,6 +44,7 @@
 	
 	typedef struct _data
 	{
+		bool valid = false;		// is data valid?
 		unsigned int* timestamp;// data time stamp
 		cgNum* rawSample;		// raw samples from the glove
 		cgNum* rawSample_nrm;	// normalized raw glove samples

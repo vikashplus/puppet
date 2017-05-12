@@ -9,6 +9,9 @@ void Plot::DISPLAY()
 {	
 	vector<double> raw(option.rawSenor_n), raw_nrm(option.rawSenor_n), calib(option.calibSenor_n);
 
+	if(!cgdata.valid)
+		return;
+
 	for(int i=0; i<option.rawSenor_n; i++)
 	{	raw[i] = (double)cgdata.rawSample[i];
 		raw_nrm[i] = (double)cgdata.rawSample_nrm[i];

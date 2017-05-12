@@ -83,7 +83,7 @@ int initMuJoCo(const char* filename, int width2, int height)
     // load and compile
     char error[1000] = "Could not load binary model";
     if( strlen(filename)>4 && !strcmp(filename+strlen(filename)-4, ".mjb") )
-        m = mj_loadModel(filename, 0, 0);
+        m = mj_loadModel(filename, 0);
     else
         m = mj_loadXML(filename, 0, error, 1000);
     if( !m )

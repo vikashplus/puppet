@@ -461,12 +461,14 @@ void cGlove_initData(cgData* d, cgOption* o)
 	util_readFile(o->calibFile, d->calibMat, o->calibSenor_n*(o->rawSenor_n+1));
 	util_readFile(o->userRangeFile, d->userRangeMat, o->rawSenor_n*2);
 	util_readFile(o->handRangeFile, d->handRangeMat, o->calibSenor_n*2);
+	d->valid = true;
 }
 
 
 // free cgdata
 void cGlove_freeData(cgData* d)
 {
+	d->valid = false;
 	util_free(d->rawSample);
 	util_free(d->rawSample_nrm);
 	util_free(d->calibSample);

@@ -1056,8 +1056,8 @@ void user_perturbations(int ctl_n)
 char* help = {
 	"-----------------------------------------------------------------\n"
 	"mjVive:\t\tEmersive experience of Mujoco Worlds using HTCVive\n"
-	"Usage:\t\tmjVive.exe <modelname> <logname(optional)>\n"
 	"Requirements:\tHTCvive with atleast one connected controller\n"
+	"Usage:\t\tmjVive.exe <modelname> <logname(optional)>\n"
 	"-----------------------------------------------------------------\n\n"
 };
 

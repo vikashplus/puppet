@@ -1051,27 +1051,33 @@ void user_perturbations(int ctl_n)
 	}
 }
 
+// Instructions
+char* help = {
+	"-----------------------------------------------------------------\n"
+	"viveGlove:\tTeleoperate Mujoco world via HTCVive & cyberGlove\n"
+	"Requirements:\tHTCvive + 1 tracker + 1 controller, and cyberGlove\n"
+	"Usage:\t\tmjViveGlove.exe <config_filename>\n"
+	"-----------------------------------------------------------------\n\n"
+};
 
 // main
 int main(int argc, char** argv)
 {
-    char model_filename[100];
-	char log_filename[100] = {"none"};
+	printf("%s", help);
 
     // get options from command line or iteractively ---
+    char config_filename[100];
     if( argc>=2 )
-	{	strcpy(model_filename, argv[1]);
-		if(argc>=3)
-			strcpy(log_filename, argv[2]);
+	{	strcpy(config_filename, argv[1]);
 	}
     else
     {
-        printf("Enter MuJoCo model file: ");
-        scanf("%s", model_filename);
+        printf("Enter config file: ");
+        scanf("%s", config_filename);
     }
 
 	// init Glove ----------------------------------------
-	opt = readOptions("gloveTeleOp.config");
+	opt = readOptions(config_filename);
 	if(opt->USEGLOVE)
 		cGlove_init(opt);
 
@@ -1158,8 +1164,8 @@ int main(int argc, char** argv)
         mj_step(m, d);
 
 		// Save logs
-		if(strcmp(log_filename,"none")!=0)
-			write_logs(m, d, log_filename);
+		if(strcmp(opt->logFile,"none")!=0)
+			write_logs(m, d, opt->logFile);
 
         // update GUI
         glfwPollEvents();
@@ -1167,7 +1173,7 @@ int main(int argc, char** argv)
 	printf("Main:>\t Done\n");
 
     // close
-	write_logs(m, d, log_filename, true);
+	write_logs(m, d, opt->logFile, true);
     v_close();
     closeMuJoCo();
     glfwTerminate();

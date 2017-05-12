@@ -2,7 +2,7 @@ MJ_PATH=$(MUJOCOPATH)/mjpro140
 VIVE_PATH=..\..\vive
 PLOT_PATH=../../../plot
 
-COMMON=/O2 /MT /EHsc /Fe$(VIVE_PATH)/bin/
+COMMON=/O2 /MT /EHsc /Fe$(VIVE_PATH)/bin/viveGlove.exe
 mujoco=/I$(MJ_PATH)/include $(MJ_PATH)/bin/mujoco140.lib $(MJ_PATH)/bin/glfw3.lib opengl32.lib
 mjVive=/I$(VIVE_PATH)/sdk/openVR /I$(VIVE_PATH)/sdk -DGLEW_STATIC $(VIVE_PATH)/sdk/GL/glew.c $(VIVE_PATH)/bin/openvr_api.lib
 cGlove=/I../source ../source/CyberGlove.cpp ../source/CyberGlove_utils.cpp
@@ -15,6 +15,6 @@ all:
 	del *.obj
 	
 clean:
-	del $(VIVE_PATH)\bin\viveGlove_main.exe
+	del $(VIVE_PATH)\bin\viveGlove*
 	del $(VIVE_PATH)\bin\mujoco*
 	del $(VIVE_PATH)\bin\glfw3.dll

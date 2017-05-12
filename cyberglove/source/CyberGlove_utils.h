@@ -26,6 +26,7 @@
 		int calibSenor_n = 24;
 		char* driver_ip = "128.208.4.243";
 		char* driver_port = "COM1";
+		char* logFile ="none";
 
 		// Calibration 
 		char* calibFile = "";

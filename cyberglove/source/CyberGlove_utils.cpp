@@ -426,6 +426,7 @@ cgOption * readOptions(const char* filename)
 
 	// Hand
 	util_config(filename, "char* modelFile", &option.modelFile);
+	util_config(filename, "char* logFile", &option.logFile);
 	util_config(filename, "int calibSenor_n", &option.calibSenor_n);
 	util_config(filename, "char* driver_ip", &option.driver_ip);
 	util_config(filename, "char* driver_port", &option.driver_port);

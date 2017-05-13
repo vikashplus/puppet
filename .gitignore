@@ -4,6 +4,7 @@ MUJOCO_LOG.TXT
 # visual studioes
 *.user
 .vs
+*.obj
 
 # cyberGlove
 cyberglove/bin/*

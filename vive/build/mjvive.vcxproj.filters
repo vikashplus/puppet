@@ -21,5 +21,8 @@
     <ClCompile Include="..\sdk\GL\glew.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\playlog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

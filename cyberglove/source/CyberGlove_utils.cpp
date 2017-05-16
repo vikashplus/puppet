@@ -521,12 +521,20 @@ void cGlove_connect(cgOption* o)
 	}
 	catch (std::runtime_error name)
 	{
-		printf("cGlove:>\t Connection problem. %s\n", name.what());
+		printf("cGlove:>\t Connection problem: %s\n", name.what());
+		printf("cGlove:>\t Retrying... \n");
+		try 
+		{
+			persistentGlove = new CyberGlove(o->glove_port, o->baudRate);
+		}
+		catch (std::runtime_error name)
+		{
+			printf("cGlove:>\t Connection problem. %s\n", name.what());
+		}
 	}
 	if(persistentGlove == NULL) 
 	{
 		cGlove_clean("Couldn't create glove interface.\n");
-		
 	}
 	printf("cGlove:>\t Created interface for glove.\n");
 }
@@ -576,7 +584,7 @@ void cGlove_update(cgData* d, cgOption* o)
 		d->cgGlove.unlock();
 	}
 
-	// Clear local buffers
+	// Clear buffers
 	util_free(calibSample_local);
 	printf("cGlove:>\t cGlove update thread exiting\n");
 }

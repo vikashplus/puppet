@@ -955,8 +955,7 @@ int num2float(float* res, mjtNum* data, int n)
 void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
 {
     static bool initFlag = true;
-    static float* writebuf = (float*)mju_malloc(sizeof(float)*(1 + m->nq + m->nv + m->nu
-        + 3 * m->nmocap + 4 * m->nmocap + m->nsensordata));
+    static float* writebuf = nullptr;
 	static FILE* logfile = nullptr;
 
     if (initFlag&&!closeFile)
@@ -986,6 +985,10 @@ void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
             if (sz)
                 fwrite(m->names, sizeof(char), sz, logfile);
         }
+
+		writebuf = (float*)mju_malloc(sizeof(float)*(1 + m->nq + m->nv + m->nu
+        + 3 * m->nmocap + 4 * m->nmocap + m->nsensordata));
+
         initFlag = false;
     }
 
@@ -1060,6 +1063,21 @@ char* help = {
 	"-----------------------------------------------------------------\n\n"
 };
 
+// Close and clean up -------------------------------
+void closenclear()
+{
+	write_logs(m, d, opt->logFile, true);
+    v_close();
+    closeMuJoCo();
+    glfwTerminate();
+
+	if(opt->USEGRAPHICS)
+		Graphics_Close();
+	
+	if(opt->USEGLOVE)
+		cGlove_clean(NULL);
+}
+
 // main
 int main(int argc, char** argv)
 {
@@ -1092,7 +1110,9 @@ int main(int argc, char** argv)
 
     // initialize MuJoCo, with image size from vr
     if( !initMuJoCo(opt->modelFile, (int)(2*hmd.width), (int)hmd.height) )
-        return 0;
+	{	closenclear();
+		return 0;
+	}
 
     // post-initialize vr
     v_initPost();
@@ -1172,20 +1192,7 @@ int main(int argc, char** argv)
     }
 	printf("Main:>\t Done\n");
 
-    // close
-	write_logs(m, d, opt->logFile, true);
-    v_close();
-    closeMuJoCo();
-    glfwTerminate();
-
-
-	// Close and clean up -------------------------------
-	if(opt->USEGRAPHICS)
-		Graphics_Close();
-	
-	if(opt->USEGLOVE)
-		cGlove_clean(NULL);
-
+	closenclear();
 	Sleep(1000);
     return 1;
 }

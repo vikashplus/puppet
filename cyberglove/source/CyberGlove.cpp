@@ -112,6 +112,7 @@ void CyberGlove::Reset(bool hardwareReset)
 	// Purge and reset the hardware
 	try
 	{	StopStreaming();
+		SynchInput();
 		printf("CG:>\tCleaning old streams\n");
 	}
 	catch(std::runtime_error name)

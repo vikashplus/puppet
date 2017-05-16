@@ -65,10 +65,7 @@ int initMuJoCo(const char* filename, int width2, int height)
 	char licensePath[100];
 	char* mujocoPath = getenv("MUJOCOPATH");
     if(mujocoPath == NULL)
-	{
 		printf("WARNING:: Environment variable 'MUJOCOPATH' not found. Defaulting to the local folder\n");
-		std::string("");
-	}
 	else
 		(std::string(mujocoPath));
 	sprintf(licensePath, "%s\\mjkey.txt", mujocoPath);
@@ -80,7 +77,7 @@ int initMuJoCo(const char* filename, int width2, int height)
     // load and compile
     char error[1000] = "Could not load binary model";
     if( strlen(filename)>4 && !strcmp(filename+strlen(filename)-4, ".mjb") )
-        m = mj_loadModel(filename, 0, 0);
+        m = mj_loadModel(filename, NULL);
     else
         m = mj_loadXML(filename, 0, error, 1000);
     if( !m )
@@ -1057,7 +1054,7 @@ char* help = {
 	"-----------------------------------------------------------------\n"
 	"mjVive:\t\tEmersive experience of Mujoco Worlds using HTCVive\n"
 	"Requirements:\tHTCvive with atleast one connected controller\n"
-	"Usage:\t\tmjVive.exe <modelname> <logname(optional)>\n"
+	"Usage:\t\tmjVive.exe modelname [logname]\n"
 	"-----------------------------------------------------------------\n\n"
 };
 

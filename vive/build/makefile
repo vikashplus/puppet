@@ -1,13 +1,13 @@
 MJ_PATH=$(MUJOCOPATH)/mjpro150
 
 COMMON=/O2 /MT /EHsc /Fe../bin/
-MUJOCO=/I$(MJ_PATH)/include $(MJ_PATH)/bin/mujoco140.lib $(MJ_PATH)/bin/glfw3.lib opengl32.lib
+MUJOCO=/I$(MJ_PATH)/include $(MJ_PATH)/bin/mujoco150.lib $(MJ_PATH)/bin/glfw3.lib opengl32.lib
 MJVIVE=/I../sdk/openVR /I../sdk -DGLEW_STATIC ../sdk/GL/glew.c ../bin/openvr_api.lib
 
 all:
 	cl $(COMMON) ../source/mjVive.cpp $(MUJOCO) $(MJVIVE)
 	cl $(COMMON) ../source/playlog.cpp $(MUJOCO) $(MJVIVE)
-	copy "$(MJ_PATH)\bin\mujoco140.dll" "..\bin\mujoco140.dll"
+	copy "$(MJ_PATH)\bin\mujoco150.dll" "..\bin\mujoco150.dll"
 	copy "$(MJ_PATH)\bin\glfw3.dll" "..\bin\glfw3.dll"
 	del *.obj
 

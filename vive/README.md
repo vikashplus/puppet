@@ -3,14 +3,15 @@
 ## Build 
 1. Open VS2015 x64 Native Tools Command Prompt
 2. Navigate to vive/build/ folder
-3. Make sure environment variable "MUJOCOPATH" exists/ add , and is correct, using the command "SET MUJOCOPATH".
+3. Make sure environment variable "MUJOCOPATH" exists/ [add environment variable "MUJOCOPATH"](https://github.com/openai/mujoco-bin#windows), and is correct, using the command "SET MUJOCOPATH".
 4. Use "nmake" to build and install the project. It will compile two programs mjVive.exe and playlog.exe
 5. Use "nmake clean" to clean the project installation. Note it doesn't clear recorded logs.
 
 ## Usage
+Navigate to vive/bin/ folder. Type mjvive.exe/ playlog.exe without any arguments for usage instructions. 
 1. mjVive.exe is used for emersive visualization and interaction with the mujoco worlds.
-2. playlog.exe is can be used to replay recorded logs and dump raw video (Key F9) (pixel_format rgb24). Use ffm
-Type mjvive.exe/ playlog.exe without any arguments for usage instructions. 
+2. playlog.exe is can be used to replay recorded logs and dump raw video (Key F9) (pixel_format rgb24).
+
 
 **Note1**: Logs are dumped in mujoco's .mjl format. Refer [Mujoco documenation](http://www.mujoco.org/book/haptix.html#uiRecord) for details.  
 

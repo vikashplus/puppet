@@ -1139,7 +1139,7 @@ int main(int argc, char** argv)
     // set keyboard callback
     glfwSetKeyCallback(window, keyboard);
 
-	// configure controllers
+	// configure devices
 	init_devices();
 	
     // main loop

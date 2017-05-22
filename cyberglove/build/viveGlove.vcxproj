@@ -14,7 +14,7 @@
     <ProjectGuid>{0429E28B-C51F-4A40-A111-6B1B8AB9C32B}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>viveGlove</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -47,14 +47,14 @@
     <OutDir>../../vive/bin/</OutDir>
     <IntDir>C:\Users\$(USERNAME)\Desktop\temp\$(ProjectName)\$(Platform)\$(Configuration)\bin\</IntDir>
     <IncludePath>..\source;..\..\vive\sdk;..\..\vive\sdk\openVR;$(MUJOCOPATH)\mjpro150\include;..\..\..\plot\include;$(IncludePath)</IncludePath>
-    <LibraryPath>..\..\vive\bin;$(MUJOCOPATH)\mjpro150\bin;..\..\..\plot\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <LibraryPath>..\..\vive\sdk\openVR;$(MUJOCOPATH)\mjpro150\bin;..\..\..\plot\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>../../vive/bin/</OutDir>
     <IntDir>C:\Users\$(USERNAME)\Desktop\temp\$(ProjectName)\$(Platform)\$(Configuration)\bin\</IntDir>
     <IncludePath>..\source;..\..\vive\sdk;..\..\vive\sdk\openVR;$(MUJOCOPATH)\mjpro150\include;..\..\..\plot\include;$(IncludePath)</IncludePath>
-    <LibraryPath>..\..\vive\bin;$(MUJOCOPATH)\mjpro150\bin;..\..\..\plot\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <LibraryPath>..\..\vive\sdk\openVR;$(MUJOCOPATH)\mjpro150\bin;..\..\..\plot\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -94,10 +94,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\vive\sdk\GL\glew.c" />
+    <ClCompile Include="..\..\vive\source\viveGlove.cpp" />
     <ClCompile Include="..\source\CyberGlove.cpp" />
     <ClCompile Include="..\source\CyberGlove_utils.cpp" />
     <ClCompile Include="..\source\Graphics.cpp" />
-    <ClCompile Include="..\source\viveGlove_main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\source\CyberGlove.h" />

@@ -205,6 +205,16 @@ void keyboard(GLFWwindow* window, int key, int scancode, int act, int mods)
 
 //-------------------------------- vr definitions and global data -----------------------
 
+// device type
+enum
+{
+	vDEVICE_CONTROLLER = 0,
+	vDEVICE_TRACKER,
+
+	vNDEVICE
+};
+
+
 // buttons
 enum
 {
@@ -227,6 +237,7 @@ enum
 };
 
 
+
 // tool names
 const char* toolName[vNTOOL] = {
     "move and scale world",
@@ -238,7 +249,8 @@ const char* toolName[vNTOOL] = {
 struct _vController_t
 {
     // constant properties
-    int id;                         // controller device id; -1: not used
+	int id;                         // device id; -1: not used
+	int device;						// device type;(vDEVICE_XXX)
     int idtrigger;                  // trigger axis id
     int idpad;                      // trackpad axis id
     float rgba[4];                  // controller color
@@ -350,13 +362,15 @@ void v_initPre(void)
         {
 			printf("Controller (id:%d) found\n", n);
             ctl[cnt].id = n;
+			ctl[cnt].device = vDEVICE_CONTROLLER;
             cnt++;
         }
 		else if (cls==TrackedDeviceClass_GenericTracker)
 		{
 			printf("Tracker (id:%d) found\n", n);
             ctl[cnt].id = n;
-            cnt++;
+			ctl[cnt].device = vDEVICE_TRACKER;
+			cnt++;
         }
     }
 
@@ -1006,24 +1020,29 @@ void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
     fwrite((void*)writebuf, sizeof(float), wpos, logfile);
 }
 
-// configure controllers
-void init_controller()
+// configure devices
+void init_devices()
 {
-	int mocap0 = mj_name2id(m, mjOBJ_BODY, "mocap0");
-	int mocap1 = mj_name2id(m, mjOBJ_BODY, "mocap1");
-	if((mocap0!=-1)&&(ctl[0].id!=-1))
-	{	ctl[0].body = mocap0;
-		ctl[0].tool = vTOOL_PULL;
-	}
-	else
-		ctl[0].tool = vTOOL_MOVE;
+	int controller = mj_name2id(m, mjOBJ_BODY, "vive_controller");
+	int tracker = mj_name2id(m, mjOBJ_BODY, "vive_tracker");
 	
-	if((mocap1!=-1)&&(ctl[0].id!=-1))
-	{	ctl[1].body = mocap1;
-		ctl[1].tool = vTOOL_PULL;
-	}
-	else
-		ctl[1].tool = vTOOL_MOVE;
+	
+	if(controller != -1)
+		for(int i=0; i<2; i++)
+			if (ctl[i].device == vDEVICE_CONTROLLER)
+			{
+				ctl[i].body = controller;
+				ctl[i].tool = vTOOL_MOVE;
+			}
+
+
+	if (tracker != -1)
+		for (int i = 0; i<2; i++)
+			if (ctl[i].device == vDEVICE_TRACKER)
+			{
+				ctl[i].body = tracker;
+				ctl[i].tool = vTOOL_PULL;
+			}
 }
 
 // Custom User purturbations
@@ -1092,7 +1111,7 @@ int main(int argc, const char** argv)
     glfwSetKeyCallback(window, keyboard);
 
 	// configure controllers
-	init_controller();
+	init_devices();
 	
     // main loop
     double lasttm = glfwGetTime(), FPS = 90;

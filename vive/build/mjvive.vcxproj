@@ -57,14 +57,14 @@
     <LinkIncremental>true</LinkIncremental>
     <IntDir>C:\Users\$(USERNAME)\Desktop\temp\$(ProjectName)\$(Platform)\$(Configuration)\bin\</IntDir>
     <IncludePath>..\sdk;..\sdk\openVR;$(MUJOCOPATH)\mjpro150\include;$(IncludePath)</IncludePath>
-    <LibraryPath>..\bin;$(MUJOCOPATH)\mjpro150\bin;$(LibraryPath)</LibraryPath>
+    <LibraryPath>..\sdk\openVR;$(MUJOCOPATH)\mjpro150\bin;$(LibraryPath)</LibraryPath>
     <OutDir>../bin/</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>C:\Users\$(USERNAME)\Desktop\temp\$(ProjectName)\$(Platform)\$(Configuration)\bin\</IntDir>
     <IncludePath>..\sdk;..\sdk\openVR;$(MUJOCOPATH)\mjpro150\include;$(IncludePath)</IncludePath>
-    <LibraryPath>..\bin;$(MUJOCOPATH)\mjpro150\bin;$(LibraryPath)</LibraryPath>
+    <LibraryPath>..\sdk\openVR;$(MUJOCOPATH)\mjpro150\bin;$(LibraryPath)</LibraryPath>
     <OutDir>../bin/</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

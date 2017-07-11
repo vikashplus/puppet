@@ -137,7 +137,7 @@ void closeMuJoCo(void)
     mj_deactivate();
 }
 
-
+bool saveLogs = false;
 // keyboard
 void keyboard(GLFWwindow* window, int key, int scancode, int act, int mods)
 {
@@ -151,6 +151,10 @@ void keyboard(GLFWwindow* window, int key, int scancode, int act, int mods)
 
     switch( key )
     {
+    case GLFW_KEY_F6:
+        saveLogs=!saveLogs;
+        printf("\nSavelogs %d", (int)saveLogs);
+        break;
     case ';':                           // previous frame mode
         vopt.frame = mjMAX(0, vopt.frame-1);
         break;
@@ -1204,7 +1208,8 @@ int main(int argc, char** argv)
 
 		// Save logs
 		if(strcmp(opt->logFile,"none")!=0)
-			write_logs(m, d, opt->logFile);
+            if(saveLogs)
+			    write_logs(m, d, opt->logFile);
 
         // update GUI
         glfwPollEvents();

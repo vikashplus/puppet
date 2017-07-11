@@ -12,5 +12,5 @@ cyberglove/calib/*
 
 # vive 
 vive/bin/*
-vive/bin/datalog/*
+vive/datalog/*
 *.psd

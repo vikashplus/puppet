@@ -24,7 +24,7 @@ ffmpeg -f rawvideo -pixel_format rgb24 -video_size 800x800 -framerate 60 -i rgb.
 Vive headset and a minimum of one active controller.
 
 ## Controller bindings
-<p align="center"><img src="https://github.com/openai/raas/blob/cyberGlove/vive/controller_bindings.jpg" alt="Controller bindings" height="500"/></p>
+<p align="center"><img src="controller_bindings.jpg" alt="Controller bindings" height="500"/></p>
 
 ## Special cases 
 

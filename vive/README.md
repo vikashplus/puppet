@@ -8,7 +8,7 @@
 5. Use "nmake clean" to clean the project installation. Note it doesn't clear recorded logs.
 
 ## Usage
-Navigate to vive/bin/ folder. Type mjvive.exe/ playlog.exe without any arguments for usage instructions. 
+Navigate to vive/bin/ folder. Type `mjvive.exe/ playlog.exe` without any arguments for usage instructions. 
 1. mjVive.exe is used for emersive visualization and interaction with the mujoco worlds.
 2. playlog.exe is can be used to replay recorded logs and dump raw video (Key F9) (pixel_format rgb24).
 

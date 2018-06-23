@@ -23,7 +23,8 @@ ffmpeg -f rawvideo -pixel_format rgb24 -video_size 800x800 -framerate 60 -i rgb.
 ## Requirements
 Vive headset and a minimum of one active controller.
 
-## Controller bindings
+## Bindings
+### Controller
 <p align="center"><img src="controller_bindings.jpg" alt="Controller bindings" height="500"/></p>
 
 Controller have two modes
@@ -36,6 +37,14 @@ Controller have two modes
     * __Step2__ Use the side button to toggle between purturbation and no purturbation
     * __Setp3__ Use the trigger to apply special purturbation
     * __Step4__ Use the left pad button to reset the world
+
+
+### Keyboard
+In addiiton to the usual Mujoco key bindings following Puppet specific bindings are available. 
+* F6 - Dump logs toggle
+* F7 - Bind controller0 toggle
+* F8 - Bind controller1 toggle
+
 
 ## Special cases 
 

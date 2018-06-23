@@ -36,3 +36,7 @@ While the vive driver is general purpose, There are fetch-gripper specific utili
 
 ## Trouble shooting 
 1. Vive tracker not detected? - you need to add Vive Tracker into SteamVR. Rightclick on one of the existing controller’s icon and click “Pair Controller” in the pop-up menu. Press the Power button on Vive Tracker for 2 seconds, and then release it to enter the paring mode. Note that if you have two Vive controllers already, then you will need to plug the dongle into the dongle cradle to PC’s USB port. More details can be found here [Vive Tracker developer guide](https://dl.vive.com/Tracker/Guideline/HTC_Vive_Tracker_Developer_Guidelines_v1.3.pdf)
+2. Vive-chaperone is in your view? - Vive doesn't allow you to fully disable the chaperon from the scene. However the chaperone can be removed from the view by tuning its alpha value to zero. Restart steaemVR for the new settings to take effect. 
+```
+C:\Program Files (x86)\Steam\config\steamvr.vrsettings\collisionBounds: "CollisionBoundsColorGammaA" : 0
+``` 

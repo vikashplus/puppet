@@ -26,6 +26,17 @@ Vive headset and a minimum of one active controller.
 ## Controller bindings
 <p align="center"><img src="controller_bindings.jpg" alt="Controller bindings" height="500"/></p>
 
+Controller have two modes
+
+1. **Orient**:  
+    * Use the trigger to move and reposition the world with respect to the user when in this mode.
+
+2. **Operate**:  
+    * __Step1__ Use the up/down pad button to select the body of interest 
+    * __Step2__ Use the side button to toggle between purturbation and no purturbation
+    * __Setp3__ Use the trigger to apply special purturbation
+    * __Step4__ Use the left pad button to reset the world
+
 ## Special cases 
 
 ### Controller/Mocap configuration

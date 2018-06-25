@@ -433,6 +433,7 @@ cgOption * readOptions(const char* filename)
 
 	// Mujoco
 	util_config(filename, "char* viz_ip", &option.viz_ip);
+	util_config(filename, "int skip", &option.skip);
 
 	// Calibration 
 	util_config(filename, "char* calibFile", &option.calibFile);

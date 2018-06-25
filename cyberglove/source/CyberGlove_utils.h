@@ -35,6 +35,7 @@
 
 		// Mujoco
 		char* viz_ip = "128.208.4.243";
+		int skip = 1;		// # steps to skip updates from the glove
 
 		// feedback
 		char* DOChan = "Dev2/port0/line0:7";

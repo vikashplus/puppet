@@ -153,7 +153,7 @@ void keyboard(GLFWwindow* window, int key, int scancode, int act, int mods)
     {
     case GLFW_KEY_F6:
         saveLogs=!saveLogs;
-        printf("\nSavelogs %d", (int)saveLogs);
+        printf("Savelogs %d\n", (int)saveLogs);
         break;
     case ';':                           // previous frame mode
         vopt.frame = mjMAX(0, vopt.frame-1);
@@ -636,9 +636,9 @@ void v_update(void)
             case VREvent_ButtonPress:
                 ctl[n].hold[button] = true;
 
-				// disable tracking if setting changes
-				if((button != vBUTTON_SIDE) && (button != vBUTTON_TRIGGER) )
-					trackMocap[n] = false;
+				// disable tracking if setting changes //??? Vik: Needs better handeling of this given the  Toggle trackMocap0/1 options below
+				// if((button != vBUTTON_SIDE) && (button != vBUTTON_TRIGGER) )
+					//trackMocap[n] = false;
 
                 // trigger button: save relative pose
                 if( button==vBUTTON_TRIGGER )
@@ -667,12 +667,12 @@ void v_update(void)
                     strcpy(ctl[n].message, toolName[ctl[n].tool]);
                 }
 
-                // pad button: change selection and show message
+                // pad button: change selections for move tool and show message
                 else if( button==vBUTTON_PAD && ctl[n].tool!=vTOOL_MOVE )
                 {
-                    if( ctl[n].padpos[1]>0 )
+                    if( ctl[n].padpos[1]>0.75)
                         ctl[n].body = mjMAX(0, ctl[n].body-1);
-                    else
+                    else if( ctl[n].padpos[1]<-.75)
                         ctl[n].body = mjMIN(m->nbody-1, ctl[n].body+1);
 
                     ctl[n].messageduration = 1;
@@ -684,13 +684,55 @@ void v_update(void)
                         sprintf(ctl[n].message, "body %d", ctl[n].body);
                 }
 
+				// pad button: change selection for pull tool and show message
+                else if( button==vBUTTON_PAD && ctl[n].tool!=vTOOL_PULL )
+                {
+					ctl[n].messageduration = 1;
+                    ctl[n].messagestart = glfwGetTime();
+					
+					// Left button reset the scene
+                    if(ctl[n].padpos[0]<-0.5 && abs(ctl[n].padpos[1]<0.5))
+                    {
+ 
+						if(m->nkey>0)
+                            mj_resetDataKeyframe(m, d, 0); // defaults to first key, if found
+                        else
+                            mj_resetData(m, d);
+                        mj_forward(m, d);
+						trackMocap[0] = false;
+						trackMocap[1] = false;
+						sprintf(ctl[n].message, "Reset");
+						printf("Reset, trackMocap0: %d, trackMocap0: %d\n", (int)trackMocap[0], (int)trackMocap[1]);
+                    }
+					// right button: Toggle saving logs
+                    else if(ctl[n].padpos[0]>0.5 && abs(ctl[n].padpos[1]<0.5))
+                    {
+						saveLogs=!saveLogs;
+						sprintf(ctl[n].message, "Savelogs: %d\n", (int)saveLogs);
+						printf("Savelogs: %d\n", (int)saveLogs);
+					}
+					// down button: Toggle trackMocap0
+                    else if(abs(ctl[n].padpos[0])<0.5 && ctl[n].padpos[1]<-.5)
+                    {
+						trackMocap[0] = !trackMocap[0];
+						sprintf(ctl[n].message, "trackMocap0: %d\n", (int)trackMocap[0]);
+						printf("trackMocap0: %d\n", (int)trackMocap[0]);
+					}
+					// up button: Toggle trackMocap1
+                    else if(abs(ctl[n].padpos[0])<0.5 && ctl[n].padpos[1]>0.5)
+                    {
+						trackMocap[1] = !trackMocap[1];
+						sprintf(ctl[n].message, "trackMocap1: %d\n", (int)trackMocap[1]);
+						printf("trackMocap1: %d\n", (int)trackMocap[1]);
+					}
+				}
+
                 // side button: reserved for user
                 else if( button==vBUTTON_SIDE )
                 {
                     // user can trigger custom action here
 					trackMocap[n] = !trackMocap[n];
                 }
-
                 break;
 
             case VREvent_ButtonUnpress:
@@ -970,6 +1012,8 @@ int num2float(float* res, mjtNum* data, int n)
 
 // Save logs
 #include <time.h>
+char logTimestr[50]="";
+
 void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
 {
     static bool initFlag = true;
@@ -978,11 +1022,10 @@ void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
 
     if (initFlag&&!closeFile)
     {
-        char timestr[50];
         char name[100];
         time_t now = time(0);
-        strftime(timestr, sizeof(name), "%Y_%m_%d_%H_%M_%S", localtime(&now));
-        sprintf(name, "%s_%s.log", filename, timestr);
+        strftime(logTimestr, sizeof(name), "%Y_%m_%d_%H_%M_%S", localtime(&now));
+        sprintf(name, "%s_%s.log", filename, logTimestr);
         logfile = fopen(name,"wb");
         if (logfile == NULL)
         {
@@ -1012,8 +1055,15 @@ void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
 
 	// close if requested
 	if(closeFile)
-	{	if(logfile!=nullptr)
+	{	
+        if(logfile!=nullptr)
 			fclose(logfile);
+
+        mju_free(writebuf);
+        writebuf = nullptr;
+        logfile = nullptr;
+        initFlag = true;
+
 		return;
 	}
 
@@ -1086,10 +1136,15 @@ char* help = {
 	"-----------------------------------------------------------------\n\n"
 };
 
+#include "user.cpp"
 // Close and clean up -------------------------------
 void closenclear()
 {
-	write_logs(m, d, opt->logFile, true);
+    // close logs and save models
+    mj_resetData(m, d);
+    mj_forward(m, d);
+    user_step(m, d);
+
     v_close();
     closeMuJoCo();
     glfwTerminate();
@@ -1201,15 +1256,19 @@ int main(int argc, char** argv)
 		
 		// get glove demands
 		if(opt->USEGLOVE)
-			cGlove_getData(d->ctrl, m->nu);
+			if((int)(float)(d->time/m->opt.timestep)%opt->skip==0)
+				cGlove_getData(d->ctrl, m->nu);
+
+		// user requests
+        user_step(m,d);
+
+		// Save logs
+		if((strcmp(opt->logFile,"none")!=0)&&(saveLogs))
+            write_logs(m, d, opt->logFile);
 
         // simulate
         mj_step(m, d);
-
-		// Save logs
-		if(strcmp(opt->logFile,"none")!=0)
-            if(saveLogs)
-			    write_logs(m, d, opt->logFile);
+                
 
         // update GUI
         glfwPollEvents();

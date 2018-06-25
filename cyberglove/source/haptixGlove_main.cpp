@@ -130,7 +130,7 @@ int main(int argc, char** argv)
 	mjSocket socDriver;
 
 	// Connect to Glove ----------------------------------
-	o = readOptions("gloveTeleOp.config");
+	o = readOptions("cyberglove.config");
 	cGlove_init(o);
 
 	// Connect to visualizer -------------------------------

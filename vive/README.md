@@ -8,7 +8,7 @@
 5. Use "nmake clean" to clean the project installation. Note it doesn't clear recorded logs.
 
 ## Usage
-Navigate to vive/bin/ folder. Type mjvive.exe/ playlog.exe without any arguments for usage instructions. 
+Navigate to vive/bin/ folder. Type `mjvive.exe/ playlog.exe` without any arguments for usage instructions. 
 1. mjVive.exe is used for emersive visualization and interaction with the mujoco worlds.
 2. playlog.exe is can be used to replay recorded logs and dump raw video (Key F9) (pixel_format rgb24).
 
@@ -23,8 +23,28 @@ ffmpeg -f rawvideo -pixel_format rgb24 -video_size 800x800 -framerate 60 -i rgb.
 ## Requirements
 Vive headset and a minimum of one active controller.
 
-## Controller bindings
+## Bindings
+### Controller
 <p align="center"><img src="controller_bindings.jpg" alt="Controller bindings" height="500"/></p>
+
+Controller have two modes
+
+1. **Orient**:  
+    * Use the trigger to move and reposition the world with respect to the user when in this mode.
+
+2. **Operate**:  
+    * __Step1__ Use the up/down pad button to select the body of interest 
+    * __Step2__ Use the side button to toggle between purturbation and no purturbation
+    * __Setp3__ Use the trigger to apply special purturbation
+    * __Step4__ Use the left pad button to reset the world
+
+
+### Keyboard
+In addiiton to the usual Mujoco key bindings following Puppet specific bindings are available. 
+* F6 - Dump logs toggle
+* F7 - Bind controller0 toggle
+* F8 - Bind controller1 toggle
+
 
 ## Special cases 
 
@@ -36,3 +56,7 @@ While the vive driver is general purpose, There are fetch-gripper specific utili
 
 ## Trouble shooting 
 1. Vive tracker not detected? - you need to add Vive Tracker into SteamVR. Rightclick on one of the existing controller’s icon and click “Pair Controller” in the pop-up menu. Press the Power button on Vive Tracker for 2 seconds, and then release it to enter the paring mode. Note that if you have two Vive controllers already, then you will need to plug the dongle into the dongle cradle to PC’s USB port. More details can be found here [Vive Tracker developer guide](https://dl.vive.com/Tracker/Guideline/HTC_Vive_Tracker_Developer_Guidelines_v1.3.pdf)
+2. Vive-chaperone is in your view? - Vive doesn't allow you to fully disable the chaperon from the scene. However the chaperone can be removed from the view by tuning its alpha value to zero. Restart steaemVR for the new settings to take effect. 
+```
+C:\Program Files (x86)\Steam\config\steamvr.vrsettings\collisionBounds: "CollisionBoundsColorGammaA" : 0
+``` 

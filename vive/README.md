@@ -3,7 +3,7 @@
 ## Build 
 1. Open VS2015 x64 Native Tools Command Prompt
 2. Navigate to vive/build/ folder
-3. Make sure environment variable "MUJOCOPATH" exists/ [add environment variable "MUJOCOPATH"](https://github.com/openai/mujoco-bin#windows), and is correct, using the command "SET MUJOCOPATH".
+3. Make sure environment variable "MUJOCOPATH" exists/ [add environment variable "MUJOCOPATH"](../gallery/adding system variables.JPG), and is correct, using the command "SET MUJOCOPATH".
 4. Use "nmake" to build and install the project. It will compile two programs mjVive.exe and playlog.exe
 5. Use "nmake clean" to clean the project installation. Note it doesn't clear recorded logs.
 

@@ -1,20 +1,21 @@
 # Vive C driver
 
 ## Build 
-1. Open VS2015 x64 Native Tools Command Prompt
-2. Navigate to vive/build/ folder
-3. Make sure environment variable "MUJOCOPATH" exists/ [add environment variable "MUJOCOPATH"](../gallery/adding system variables.JPG), and is correct, using the command "SET MUJOCOPATH".
-4. Use "nmake" to build and install the project. It will compile two programs mjVive.exe and playlog.exe
-5. Use "nmake clean" to clean the project installation. Note it doesn't clear recorded logs.
+1. Add environment variable ["MUJOCOPATH"](..//gallery//adding_system_variables.jpg) to the `System Properties`
+2. Open `VS2015 x64 Native Tools Command Prompt`.
+3. Type `SET MUJOCOPATH` to verify that the path is correctly set.
+3. Navigate to `vive/build/` folder.
+4. Type `nmake` to build and install the project. It will compile two programs `mjVive.exe` and `playlog.exe`.
+5. Use `nmake clean` if you need to clean the project installation. Note it doesn't clear recorded logs.
 
 ## Usage
-Navigate to vive/bin/ folder. Type `mjvive.exe/ playlog.exe` without any arguments for usage instructions. 
 1. mjVive.exe is used for emersive visualization and interaction with the mujoco worlds.
-2. playlog.exe is can be used to replay recorded logs and dump raw video (Key F9) (pixel_format rgb24).
+2. playlog.exe is can be used to replay recorded logs and dump raw video (Key F9) (pixel_format rgb24).   
+
+Navigate to `vive/bin/` folder. Type `mjvive.exe` or `playlog.exe` (without any arguments) for usage instructions. 
 
 
 **Note1**: Logs are dumped in mujoco's .mjl format. Refer [Mujoco documenation](http://www.mujoco.org/book/haptix.html#uiRecord) for details.  
-
 **Note2**: You can use [ffmpeg](https://ffmpeg.org/) to convert the raw video. Ensure that the video resolution and fps matches with the settings used while dumping raw video.
 ```
 ffmpeg -f rawvideo -pixel_format rgb24 -video_size 800x800 -framerate 60 -i rgb.out -vf "vflip" video.mp4

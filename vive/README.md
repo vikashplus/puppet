@@ -12,7 +12,7 @@
 1. mjVive.exe is used for emersive visualization and interaction with the mujoco worlds.
 2. playlog.exe is can be used to replay recorded logs and dump raw video (Key F9) (pixel_format rgb24).   
 
-Navigate to `vive/bin/` folder. Type `mjvive.exe` or `playlog.exe` (without any arguments) for usage instructions. 
+Navigate to `vive/bin/` folder. Type `mjvive.exe` or `playlog.exe` (without any arguments) for respective usage instructions. 
 
 
 **Note1**: Logs are dumped in mujoco's .mjl format. Refer [Mujoco documenation](http://www.mujoco.org/book/haptix.html#uiRecord) for details.  

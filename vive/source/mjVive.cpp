@@ -1048,23 +1048,52 @@ void init_devices()
 // Custom User purturbations
 void user_perturbations(int ctl_n)
 {
-	// Control gripper if fetch
 	if (trackMocap[ctl_n] == true)
 	{
+		// Control gripper if fetch
 		int rGripper = mj_name2id(m, mjOBJ_ACTUATOR, "r_gripper_finger_joint");
 		int lGripper = mj_name2id(m, mjOBJ_ACTUATOR, "l_gripper_finger_joint");
-		
 		// engage only if both are found
 		if((rGripper!=-1)&&(lGripper!=-1)) 
 		{
 			const double scale = 1.0;
-			ctl[ctl_n].triggerpos *= 1.5;
-			ctl[ctl_n].triggerpos > 1.0 ? 1.0 : 0.0;
 			d->ctrl[rGripper] = m->actuator_ctrlrange[2 * rGripper] + scale*(1.0 - ctl[ctl_n].triggerpos)*
-				(m->actuator_ctrlrange[2 * rGripper + 1] - m->actuator_ctrlrange[2 * rGripper]);;
-			d->ctrl[lGripper] = m->actuator_ctrlrange[2 * lGripper] + (1.0 - ctl[ctl_n].triggerpos)*
-				(m->actuator_ctrlrange[2 * lGripper + 1] - m->actuator_ctrlrange[2 * rGripper]);
+				(m->actuator_ctrlrange[2 * rGripper + 1] - m->actuator_ctrlrange[2 * rGripper]);
+			d->ctrl[lGripper] = m->actuator_ctrlrange[2 * lGripper] + scale*(1.0 - ctl[ctl_n].triggerpos)*
+				(m->actuator_ctrlrange[2 * lGripper + 1] - m->actuator_ctrlrange[2 * lGripper]);
 		}
+		
+
+		// Control gripper if barrett hand
+		int F1_act = mj_name2id(m, mjOBJ_ACTUATOR, "F1_act");
+		int F2_act = mj_name2id(m, mjOBJ_ACTUATOR, "F2_act");
+		int F3_act = mj_name2id(m, mjOBJ_ACTUATOR, "F3_act");
+		// engage only if all are found
+		if((F1_act!=-1)&&(F2_act!=-1)&&(F3_act!=-1)) 
+		{
+			const double scale = 1.0;
+			d->ctrl[F1_act] = m->actuator_ctrlrange[2 * F1_act] + scale*(ctl[ctl_n].triggerpos)*
+				(m->actuator_ctrlrange[2 * F1_act + 1] - m->actuator_ctrlrange[2 * F1_act]);
+			d->ctrl[F2_act] = m->actuator_ctrlrange[2 * F2_act] + scale*(ctl[ctl_n].triggerpos)*
+				(m->actuator_ctrlrange[2 * F2_act + 1] - m->actuator_ctrlrange[2 * F2_act]);
+			d->ctrl[F3_act] = m->actuator_ctrlrange[2 * F3_act] + scale*(ctl[ctl_n].triggerpos)*
+				(m->actuator_ctrlrange[2 * F3_act + 1] - m->actuator_ctrlrange[2 * F3_act]);
+		}
+
+
+		// Control gripper if hv
+		rGripper = mj_name2id(m, mjOBJ_ACTUATOR, "FINGER_JOINT_1");
+		lGripper = mj_name2id(m, mjOBJ_ACTUATOR, "FINGER_JOINT_2");
+		// engage only if both are found
+		if((rGripper!=-1)&&(lGripper!=-1)) 
+		{
+			const double scale = 1.0;
+			d->ctrl[rGripper] = m->actuator_ctrlrange[2 * rGripper] + scale*(ctl[ctl_n].triggerpos)*
+				(m->actuator_ctrlrange[2 * rGripper + 1] - m->actuator_ctrlrange[2 * rGripper]);
+			d->ctrl[lGripper] = m->actuator_ctrlrange[2 * lGripper] + scale*(ctl[ctl_n].triggerpos)*
+				(m->actuator_ctrlrange[2 * lGripper + 1] - m->actuator_ctrlrange[2 * lGripper]);
+		}
+
 	}
 }
 

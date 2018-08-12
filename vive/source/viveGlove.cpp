@@ -16,13 +16,12 @@
 
 #include "GL/glew.h"
 #include "glfw3.h"
-
+#include <windows.h>
 #include <openvr.h>
 using namespace vr;
 
 #include "cyberGlove_utils.h"	// cyberGlove
 cgOption* opt;					// cyber glove options
-#include "matplotpp.h"			// plotting
 
 //-------------------------------- MuJoCo global data -----------------------------------
 
@@ -1149,9 +1148,6 @@ void closenclear()
     closeMuJoCo();
     glfwTerminate();
 
-	if(opt->USEGRAPHICS)
-		Graphics_Close();
-	
 	if(opt->USEGLOVE)
 		cGlove_clean(NULL);
 }
@@ -1176,12 +1172,6 @@ int main(int argc, char** argv)
 	opt = readOptions(config_filename);
 	if(opt->USEGLOVE)
 		cGlove_init(opt);
-
-	// init Graphs	---------------------------------------
-	if(opt->USEGRAPHICS)
-	{	printf("Main:>\t Starting graphics\n");
-		Graphics_init(argc, argv, 20, 200, 600, 500, "Vive Glove"); //Set up graphics
-	}
 
     // pre-initialize vr ----------------------------------
     v_initPre();

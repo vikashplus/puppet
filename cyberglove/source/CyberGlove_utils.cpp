@@ -413,7 +413,6 @@ cgOption * readOptions(const char* filename)
 {
 	// Use modes
 	util_config(filename, "bool USEGLOVE", &option.USEGLOVE);
-	util_config(filename, "bool USEGRAPHICS", &option.USEGRAPHICS);
 	util_config(filename, "bool STREAM_2_VIZ", &option.STREAM_2_VIZ);
 	util_config(filename, "bool STREAM_2_DRIVER", &option.STREAM_2_DRIVER);
 	util_config(filename, "bool HIRES_DATA", &option.HIRES_DATA);

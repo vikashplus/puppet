@@ -2,7 +2,7 @@
 
 ## Build 
 1. Add environment variable ["MUJOCOPATH"](..//gallery//adding_system_variables.jpg) to the `System Properties`
-2. Open `VS2015 x64 Native Tools Command Prompt`.
+2. Open `x64 Native Tools Command Prompt` from visual studios.
 3. Type `SET MUJOCOPATH` to verify that the path is correctly set.
 3. Navigate to `vive/build/` folder.
 4. Type `nmake` to build and install the project. It will compile two programs `mjVive.exe` and `playlog.exe`.

@@ -9,7 +9,6 @@
 	{
 		// Use modes
 		bool USEGLOVE = true;
-		bool USEGRAPHICS = true;
 		bool USEFEEDBACK = true;
 		bool STREAM_2_VIZ = true;
 		bool STREAM_2_DRIVER = true;

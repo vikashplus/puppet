@@ -2,18 +2,17 @@
 
 ## Build 
 1. Add environment variable ["MUJOCOPATH"](..//gallery//adding_system_variables.jpg) to the `System Properties`
-2. Open `VS2015 x64 Native Tools Command Prompt`.
+2. Open visual studios `x64 Native Tools Command Prompt`.
 3. Type `SET MUJOCOPATH` to verify that the path is correctly set.
-3. Navigate to `vive/build/` folder.
-4. Type `nmake` to build and install the project. It will compile two programs `mjVive.exe` and `playlog.exe`.
+3. Navigate to `build/` folder.
+4. Type `nmake` to build and install the project. It will compile two programs `puppet.exe` and `playlog.exe`.
 5. Use `nmake clean` if you need to clean the project installation. Note it doesn't clear recorded logs.
 
 ## Usage
-1. mjVive.exe is used for emersive visualization and interaction with the mujoco worlds.
+1. puppet.exe is used for emersive visualization and interaction with the mujoco worlds.
 2. playlog.exe is can be used to replay recorded logs and dump raw video (Key F9) (pixel_format rgb24).   
 
-Navigate to `vive/bin/` folder. Type `mjvive.exe` or `playlog.exe` (without any arguments) for respective usage instructions. 
-
+Navigate to `build/` folder. Type `mjvive.exe` or `playlog.exe` (without any arguments) for respective usage instructions. 
 
 **Note1**: Logs are dumped in mujoco's .mjl format. Refer [Mujoco documenation](http://www.mujoco.org/book/haptix.html#uiRecord) for details.  
 **Note2**: You can use [ffmpeg](https://ffmpeg.org/) to convert the raw video. Ensure that the video resolution and fps matches with the settings used while dumping raw video.
@@ -26,7 +25,7 @@ Vive headset and a minimum of one active controller.
 
 ## Bindings
 ### Controller
-<p align="center"><img src="controller_bindings.jpg" alt="Controller bindings" height="500"/></p>
+<p align="center"><img src="../vive/controller_bindings.jpg" alt="Controller bindings" height="500"/></p>
 
 Controller have two modes
 

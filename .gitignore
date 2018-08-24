@@ -5,6 +5,7 @@ MUJOCO_LOG.TXT
 *.user
 .vs
 *.obj
+build/*
 
 # cyberGlove
 cyberglove/bin/*

@@ -10,7 +10,7 @@
 
 ## Usage
 1. puppet.exe is used for emersive visualization and interaction with the mujoco worlds.
-2. playlog.exe is can be used to replay recorded logs and dump raw video (Key F9) (pixel_format rgb24).   
+2. playlog.exe is can be used to replay recorded logs and dump raw video (Key F9 to start stop video recording) (pixel_format rgb24).   
 
 Navigate to `build/` folder. Type `mjvive.exe` or `playlog.exe` (without any arguments) for respective usage instructions. 
 
@@ -31,10 +31,10 @@ Controller have two modes
 
 1. **Orient**:  Move and reposition the world with respect to the user
     * __trigger__ - Engage repositioning
-    * __up__      - Toggle mocap1
-    * __down__    - Toggle mocap0
-    * __right__   - Toggle log saving
-    * __left__    - Reset the world (optionally save logs, if recorded) 
+    * __up/F8__      - Toggle mocap1
+    * __down/F7__    - Toggle mocap0
+    * __right/F6__   - Toggle log saving
+    * __left/backspace__    - Reset the world (optionally save logs, if recorded) 
 
 2. **Operate**:  TeleOperate the scene via controller/ trackers/ external devices
     * __Step1__ - Use the up/down pad button to select the body of interest 
@@ -48,6 +48,7 @@ In addiiton to the usual Mujoco key bindings following Puppet specific bindings 
 * __F6__ - Dump logs toggle
 * __F7__ - Bind controller0 toggle
 * __F8__ - Bind controller1 toggle
+* __F9__ - Video recording toggle (only in `playlog.exe`)
 
 
 ## Special cases 

@@ -1,7 +1,7 @@
 /* =================================================================
 // Copyright: (c) Vikash Kumar, Ph.D. Thesis, CSE, Univ. of Washington. 2016.
 
-// Source: Advanced physics simulation engine, Mujoco 1.40, www.roboti.us
+// Source: Advanced physics simulation engine, Mujoco 1.50, www.roboti.us
 
 // Licensed under Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
@@ -38,6 +38,7 @@ GLFWwindow* window;
 double frametime = 0;
 bool trackMocap[2] = {false, false};
 int virtual_controllerButton = -1; // use keyboard te emulate controller keys
+bool saveLogs = false;
 
 //-------------------------------- MuJoCo functions -------------------------------------
 
@@ -67,10 +68,7 @@ int initMuJoCo(const char* filename, int width2, int height)
 	char licensePath[100];
 	char* mujocoPath = getenv("MUJOCOPATH");
     if(mujocoPath == NULL)
-	{
 		printf("WARNING:: Environment variable 'MUJOCOPATH' not found. Defaulting to the local folder\n");
-		std::string("");
-	}
 	else
 		(std::string(mujocoPath));
 	sprintf(licensePath, "%s\\mjkey.txt", mujocoPath);
@@ -82,7 +80,7 @@ int initMuJoCo(const char* filename, int width2, int height)
     // load and compile
     char error[1000] = "Could not load binary model";
     if( strlen(filename)>4 && !strcmp(filename+strlen(filename)-4, ".mjb") )
-        m = mj_loadModel(filename, 0);
+        m = mj_loadModel(filename, NULL);
     else
         m = mj_loadXML(filename, 0, error, 1000);
     if( !m )
@@ -136,7 +134,7 @@ void closeMuJoCo(void)
     mj_deactivate();
 }
 
-bool saveLogs = false;
+
 // keyboard
 void keyboard(GLFWwindow* window, int key, int scancode, int act, int mods)
 {
@@ -732,6 +730,7 @@ void v_update(void)
                     // user can trigger custom action here
 					trackMocap[n] = !trackMocap[n];
                 }
+
                 break;
 
             case VREvent_ButtonUnpress:
@@ -1107,22 +1106,55 @@ void init_devices()
 			}
 }
 
+// Custom User purturbations
 void user_perturbations(int ctl_n)
 {
 	if (trackMocap[ctl_n] == true)
 	{
+		// Control gripper if fetch
 		int rGripper = mj_name2id(m, mjOBJ_ACTUATOR, "r_gripper_finger_joint");
 		int lGripper = mj_name2id(m, mjOBJ_ACTUATOR, "l_gripper_finger_joint");
-		if((rGripper!=-1)&&(lGripper!=-1)) // engage only if both are found
+		// engage only if both are found
+		if((rGripper!=-1)&&(lGripper!=-1)) 
 		{
 			const double scale = 1.0;
-			ctl[ctl_n].triggerpos *= 1.5;
-			ctl[ctl_n].triggerpos > 1.0 ? 1.0 : 0.0;
 			d->ctrl[rGripper] = m->actuator_ctrlrange[2 * rGripper] + scale*(1.0 - ctl[ctl_n].triggerpos)*
-				(m->actuator_ctrlrange[2 * rGripper + 1] - m->actuator_ctrlrange[2 * rGripper]);;
-			d->ctrl[lGripper] = m->actuator_ctrlrange[2 * lGripper] + (1.0 - ctl[ctl_n].triggerpos)*
-				(m->actuator_ctrlrange[2 * lGripper + 1] - m->actuator_ctrlrange[2 * rGripper]);
+				(m->actuator_ctrlrange[2 * rGripper + 1] - m->actuator_ctrlrange[2 * rGripper]);
+			d->ctrl[lGripper] = m->actuator_ctrlrange[2 * lGripper] + scale*(1.0 - ctl[ctl_n].triggerpos)*
+				(m->actuator_ctrlrange[2 * lGripper + 1] - m->actuator_ctrlrange[2 * lGripper]);
 		}
+		
+
+		// Control gripper if barrett hand
+		int F1_act = mj_name2id(m, mjOBJ_ACTUATOR, "F1_act");
+		int F2_act = mj_name2id(m, mjOBJ_ACTUATOR, "F2_act");
+		int F3_act = mj_name2id(m, mjOBJ_ACTUATOR, "F3_act");
+		// engage only if all are found
+		if((F1_act!=-1)&&(F2_act!=-1)&&(F3_act!=-1)) 
+		{
+			const double scale = 1.0;
+			d->ctrl[F1_act] = m->actuator_ctrlrange[2 * F1_act] + scale*(ctl[ctl_n].triggerpos)*
+				(m->actuator_ctrlrange[2 * F1_act + 1] - m->actuator_ctrlrange[2 * F1_act]);
+			d->ctrl[F2_act] = m->actuator_ctrlrange[2 * F2_act] + scale*(ctl[ctl_n].triggerpos)*
+				(m->actuator_ctrlrange[2 * F2_act + 1] - m->actuator_ctrlrange[2 * F2_act]);
+			d->ctrl[F3_act] = m->actuator_ctrlrange[2 * F3_act] + scale*(ctl[ctl_n].triggerpos)*
+				(m->actuator_ctrlrange[2 * F3_act + 1] - m->actuator_ctrlrange[2 * F3_act]);
+		}
+
+
+		// Control gripper if hv
+		rGripper = mj_name2id(m, mjOBJ_ACTUATOR, "FINGER_JOINT_1");
+		lGripper = mj_name2id(m, mjOBJ_ACTUATOR, "FINGER_JOINT_2");
+		// engage only if both are found
+		if((rGripper!=-1)&&(lGripper!=-1)) 
+		{
+			const double scale = 1.0;
+			d->ctrl[rGripper] = m->actuator_ctrlrange[2 * rGripper] + scale*(ctl[ctl_n].triggerpos)*
+				(m->actuator_ctrlrange[2 * rGripper + 1] - m->actuator_ctrlrange[2 * rGripper]);
+			d->ctrl[lGripper] = m->actuator_ctrlrange[2 * lGripper] + scale*(ctl[ctl_n].triggerpos)*
+				(m->actuator_ctrlrange[2 * lGripper + 1] - m->actuator_ctrlrange[2 * lGripper]);
+		}
+
 	}
 }
 
@@ -1164,12 +1196,24 @@ int main(int argc, char** argv)
 	}
     else
     {
-        printf("Enter config file: ");
+        printf("Enter model/config file: ");
         scanf("%s", config_filename);
     }
 
-	// init Glove ----------------------------------------
-	opt = readOptions(config_filename);
+	if( strlen(config_filename)>4 && 
+		(!strcmp(config_filename+strlen(config_filename)-4, ".xml") || 
+			!strcmp(config_filename+strlen(config_filename)-4, ".mjb") ) )
+	{
+		cgOption option;
+		opt = &option;
+		opt->modelFile = config_filename;
+		printf("%s\n", opt->modelFile);
+		opt->USEGLOVE = false;
+	}
+	else
+		opt = readOptions(config_filename);
+		
+	// init ----------------------------------------
 	if(opt->USEGLOVE)
 		cGlove_init(opt);
 

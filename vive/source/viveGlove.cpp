@@ -45,7 +45,9 @@ bool saveLogs = false;
 // load model, init simulation and rendering; return 0 if error, 1 if ok
 int initMuJoCo(const char* filename, int width2, int height)
 {
-    // init GLFW
+	printf("%s\n", filename);
+    
+	// init GLFW
     if( !glfwInit() )
     {
         printf("Could not initialize GLFW\n");
@@ -80,7 +82,7 @@ int initMuJoCo(const char* filename, int width2, int height)
     // load and compile
     char error[1000] = "Could not load binary model";
     if( strlen(filename)>4 && !strcmp(filename+strlen(filename)-4, ".mjb") )
-        m = mj_loadModel(filename, NULL);
+		m = mj_loadModel(filename, NULL);
     else
         m = mj_loadXML(filename, 0, error, 1000);
     if( !m )
@@ -119,8 +121,8 @@ int initMuJoCo(const char* filename, int width2, int height)
 
     // stereo mode
     scn.stereo = mjSTEREO_SIDEBYSIDE;
-
-    return 1;
+    
+	return 1;
 }
 
 
@@ -1161,9 +1163,11 @@ void user_perturbations(int ctl_n)
 // Instructions
 char* help = {
 	"-----------------------------------------------------------------\n"
-	"viveGlove:\tTeleoperate Mujoco world via HTCVive & cyberGlove\n"
-	"Requirements:\tHTCvive + 1 tracker + 1 controller, and cyberGlove\n"
-	"Usage:\t\tmjViveGlove.exe <config_filename>\n"
+	"PUPPET:\t\tTeleoperate Mujoco world via HTCVive (& cyberGlove)\n"
+	"Requirements:\tHTCvive + 1 controller (+ 1 tracker, & cyberGlove)\n"
+	"Usage:\n"
+	"\t\t (1) puppet.exe <model_file> (<log_name>)\n"
+	"\t\t (2) puppet.exe <config_file>\n"
 	"-----------------------------------------------------------------\n\n"
 };
 
@@ -1190,9 +1194,14 @@ int main(int argc, char** argv)
 	printf("%s", help);
 
     // get options from command line or iteractively ---
-    char config_filename[100];
+	char config_filename[100];
+	char log_filename[100];
+	cgOption simple_option;
+
     if( argc>=2 )
 	{	strcpy(config_filename, argv[1]);
+		if(argc>=3)
+			strcpy(log_filename, argv[2]);
 	}
     else
     {
@@ -1204,11 +1213,10 @@ int main(int argc, char** argv)
 		(!strcmp(config_filename+strlen(config_filename)-4, ".xml") || 
 			!strcmp(config_filename+strlen(config_filename)-4, ".mjb") ) )
 	{
-		cgOption option;
-		opt = &option;
-		opt->modelFile = config_filename;
-		printf("%s\n", opt->modelFile);
-		opt->USEGLOVE = false;
+		simple_option.modelFile = config_filename;
+		simple_option.logFile = log_filename;
+		simple_option.USEGLOVE = false;
+		opt = &simple_option;
 	}
 	else
 		opt = readOptions(config_filename);
@@ -1222,7 +1230,9 @@ int main(int argc, char** argv)
 
     // initialize MuJoCo, with image size from vr
     if( !initMuJoCo(opt->modelFile, (int)(2*hmd.width), (int)hmd.height) )
-	{	closenclear();
+	{	
+		closenclear();
+		printf("Error initializing MuJoCo\n");
 		return 0;
 	}
 

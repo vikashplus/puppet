@@ -2,7 +2,7 @@
 
 ## Build 
 1. Add environment variable ["MUJOCOPATH"](..//gallery//adding_system_variables.jpg) to the `System Properties`
-2. Open visual studios `x64 Native Tools Command Prompt`.
+2. Open `x64 Native Tools Command Prompt` from visual studios.
 3. Type `SET MUJOCOPATH` to verify that the path is correctly set.
 3. Navigate to `build/` folder.
 4. Type `nmake` to build and install the project. It will compile two programs `puppet.exe` and `playlog.exe`.
@@ -29,21 +29,25 @@ Vive headset and a minimum of one active controller.
 
 Controller have two modes
 
-1. **Orient**:  
-    * Use the trigger to move and reposition the world with respect to the user when in this mode.
+1. **Orient**:  Move and reposition the world with respect to the user
+    * __trigger__ - Engage repositioning
+    * __up__      - Toggle mocap1
+    * __down__    - Toggle mocap0
+    * __right__   - Toggle log saving
+    * __left__    - Reset the world (optionally save logs, if recorded) 
 
-2. **Operate**:  
-    * __Step1__ Use the up/down pad button to select the body of interest 
-    * __Step2__ Use the side button to toggle between purturbation and no purturbation
-    * __Setp3__ Use the trigger to apply special purturbation
-    * __Step4__ Use the left pad button to reset the world
+2. **Operate**:  TeleOperate the scene via controller/ trackers/ external devices
+    * __Step1__ - Use the up/down pad button to select the body of interest 
+    * __Step2__ - Use the side button to toggle between purturbation and no purturbation
+    * __Setp3__ - Use the trigger to apply special purturbation
+    * __Step4__ - Use the left pad button to reset the world
 
 
 ### Keyboard
 In addiiton to the usual Mujoco key bindings following Puppet specific bindings are available. 
-* F6 - Dump logs toggle
-* F7 - Bind controller0 toggle
-* F8 - Bind controller1 toggle
+* __F6__ - Dump logs toggle
+* __F7__ - Bind controller0 toggle
+* __F8__ - Bind controller1 toggle
 
 
 ## Special cases 

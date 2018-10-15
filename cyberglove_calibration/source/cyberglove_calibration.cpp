@@ -378,6 +378,12 @@ bool save_calibration(const string& filename_prefix,
 	return true;
 }
 
+MatrixXd normalize_samples(const MatrixXd& samples, const MatrixXd& ranges)
+{
+	MatrixXd scaling_factor = (ranges.col(1) - ranges.col(0)).cwiseInverse();
+	MatrixXd bias_corrected = (samples.colwise() - samples.col(0));
+	return scaling_factor.asDiagonal()*bias_corrected;
+}
 
 int main()
 {
@@ -417,7 +423,7 @@ int main()
 
 	// Capture sensor value ranges from the glove
 	viz_ctx.state = UpdateVizCtx::kVizPose;
-	MatrixXd glove_ranges = get_glove_ranges();
+	MatrixXd glove_ranges;// = get_glove_ranges();
 
 	// Fire up the viz, movie time
 	printf("Staring Viz\n");
@@ -432,7 +438,7 @@ int main()
 
 	// Capture calibration vectors from the glove
 	// (Also continue to update ranges)
-	MatrixXd glove_values = capture_glove_data(viz_ctx, poses, glove_ranges);
+	MatrixXd glove_values;// = capture_glove_data(viz_ctx, poses, glove_ranges);
 
 	// Generate true data vectors using the calibratration pose matrix
 	MatrixXd true_values = gen_true_values_from_poses(poses);
@@ -440,14 +446,11 @@ int main()
 	// Normalize the true values
 	//val = (val - min)/(max-min)
 	MatrixXd true_values_n(true_values.rows(), true_values.cols());
-
-	cout << endl << (true_ranges.col(1) - true_ranges.col(0)).cwiseInverse();
-
-	true_values_n = (true_ranges - true_ranges.col(0)).cwiseProduct((true_ranges.col(1) - true_ranges.col(0)).cwiseInverse());
+	true_values_n = normalize_samples(true_values, true_ranges);
 
 	//Normalized the glove samples
 	MatrixXd glove_values_n(glove_values.rows(), glove_values.cols());
-	glove_values_n = (glove_ranges - glove_ranges.col(1)).cwiseProduct((glove_ranges.col(2) - glove_ranges.col(1)).cwiseInverse());
+	glove_values_n = normalize_samples(glove_values, glove_ranges);
 
 	//TODO: Compute calibration
 	MatrixXd calibration = compute_calibration(true_values_n, glove_values_n);

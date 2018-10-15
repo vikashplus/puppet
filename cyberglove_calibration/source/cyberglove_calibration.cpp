@@ -148,8 +148,8 @@ MatrixXd get_glove_ranges()
 	const size_t num_seconds = 10;
 
 	MatrixXd raw_ranges(kNumGloveSensors, 2);
-	raw_ranges.col(0) = MatrixXd::Constant(raw_ranges.rows(), 1, -1000);
-	raw_ranges.col(1) = MatrixXd::Constant(raw_ranges.rows(), 1, 1000);
+	raw_ranges.col(0) = MatrixXd::Constant(raw_ranges.rows(), 1, 1000);
+	raw_ranges.col(1) = MatrixXd::Constant(raw_ranges.rows(), 1, -1000);
 
 	cout << raw_ranges;
 
@@ -162,15 +162,14 @@ MatrixXd get_glove_ranges()
 	double glove_samples[kNumGloveSensors] = { 0 };
 	while (chrono::system_clock::now() < stop_time)
 	{
-		cGlove_getData(&glove_samples[0], sizeof(glove_samples)/sizeof(double));
-
+		cGlove_getRawData(glove_samples, kNumGloveSensors);
 
 		for (size_t i = 0; i < kNumGloveSensors; i++)
 		{
-			if (glove_samples[i] > raw_ranges(i, 0))
+			if (glove_samples[i] < raw_ranges(i, 0))
 				raw_ranges(i, 0) = glove_samples[i];
 
-			if (glove_samples[i] < raw_ranges(i, 1))
+			if (glove_samples[i] > raw_ranges(i, 1))
 				raw_ranges(i, 1) = glove_samples[i];
 		}
 
@@ -245,7 +244,7 @@ MatrixXd capture_glove_data(UpdateVizCtx& ctx, const MatrixXd& poses, MatrixXd& 
 
 			//vector<double> glove_raw(kNumGloveSensors);
 			Eigen::VectorXd glove_raw(kNumGloveSensors);
-			cGlove_getData(glove_raw.data(), kNumGloveSensors);
+			cGlove_getRawData(glove_raw.data(), kNumGloveSensors);
 			glove_samples.col(i_pose*kNumPoseSamples + j_sample) = glove_raw; 
 
 			//Continue collecting ranges for normalization

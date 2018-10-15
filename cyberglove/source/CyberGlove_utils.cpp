@@ -565,6 +565,9 @@ void cGlove_update(cgData* d, cgOption* o)
 			printf("cGlove:>\t Error getting sample:: %s\n", name.what());
 		}
 
+		// update
+		d->cgGlove.lock();
+
 		// Note : No mutex: partial info can be read by the graphics  
 		for (int s=0; s<n_samples; s++)
 			d->rawSample[s] = (cgNum)inputSample[s];
@@ -578,8 +581,6 @@ void cGlove_update(cgData* d, cgOption* o)
 		cGlove_nrmRawSample(d->rawSample_nrm, d->rawSample, d->userRangeMat, o->rawSenor_n);
 		cGlove_calibrateNrmSample(calibSample_local, d->rawSample_nrm, d->handRangeMat, d->calibMat, o->calibSenor_n, o->rawSenor_n);
 
-		// update
-		d->cgGlove.lock();
 		memcpy(d->calibSample, calibSample_local, o->calibSenor_n*sizeof(cgNum));
 		d->cgGlove.unlock();
 	}
@@ -617,6 +618,19 @@ void cGlove_getData(cgNum *buff, const int n_buff)
 	}
 	cgdata.cgGlove.lock();
 	memcpy(buff, cgdata.calibSample, option.calibSenor_n*sizeof(cgNum));
+	cgdata.cgGlove.unlock();
+}
+
+// get most recent raw cgdata.
+void cGlove_getRawData(cgNum *buff, const int n_buff)
+{
+	if (n_buff < option.calibSenor_n)
+	{
+		printf("Warning:: Buffer too small to update. Minimum size should be %d", option.calibSenor_n);
+		return;
+	}
+	cgdata.cgGlove.lock();
+	memcpy(buff, cgdata.rawSample, option.calibSenor_n * sizeof(cgNum));
 	cgdata.cgGlove.unlock();
 }
 

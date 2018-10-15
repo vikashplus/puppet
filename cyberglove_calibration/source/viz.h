@@ -20,5 +20,8 @@ void viz_register_update_cb(update_cb_t cb, void* user_ctx);
 //GPU context, use at your own risk
 extern mjrContext con;
 
+//MuJoCoModel, use at your own risk
+extern mjModel* m;
+
 
 #endif

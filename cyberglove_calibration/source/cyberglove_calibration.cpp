@@ -137,7 +137,7 @@ void update_viz(double *time, double *qpos, double *qvel, int nq, int nv, void* 
 
 
 	// Visualize glove data
-	if (UpdateVizCtx::VizStates::kVizGloveInput)
+	if (UpdateVizCtx::VizStates::kVizGloveInput == viz_ctx->state)
 	{
 		cGlove_getData(qpos, nq);
 	}
@@ -158,6 +158,10 @@ MatrixXd get_glove_ranges()
 
 	auto stop_time = chrono::system_clock::now() + chrono::seconds(num_seconds);
 
+	// It's possible to get bad samples in the buffer if you don't wait a bit.
+	// TODO: Make the cyberglove return failure if there's been no update.
+	Sleep(1000);
+
 	//Capture min values and max values for each sensor for 10 seconds
 	double glove_samples[kNumGloveSensors] = { 0 };
 	while (chrono::system_clock::now() < stop_time)
@@ -176,6 +180,8 @@ MatrixXd get_glove_ranges()
 	}
 	cout << "Finished capturing normalization data" << endl;
 
+
+	//TODO: There needs to be some debug printing functionality
 	cout << "The ranges are:" << endl;
 	cout << raw_ranges;
 	
@@ -232,8 +238,11 @@ MatrixXd capture_glove_data(UpdateVizCtx& ctx, const MatrixXd& poses, MatrixXd& 
 	MatrixXd glove_samples = MatrixXd::Zero(kNumGloveSensors, kNumPoseSamples*poses.rows());
 	MatrixXd true_values =   MatrixXd::Zero(poses.cols(),     kNumPoseSamples*poses.rows());
 
+	ctx.state = UpdateVizCtx::kVizPose;
+
 	for (int i_pose = 0; i_pose < poses.rows(); i_pose++)
 	{
+		ctx.pose_idx = i_pose;
 		cout << "Pose " << i_pose << ": ";
 		cin.ignore();
 
@@ -250,8 +259,8 @@ MatrixXd capture_glove_data(UpdateVizCtx& ctx, const MatrixXd& poses, MatrixXd& 
 			//Continue collecting ranges for normalization
 			for (int i = 0; i < glove_raw.size(); i++)
 			{
-				raw_glove_ranges(i, 0) = (glove_raw[i] < raw_glove_ranges(i, 1)) ? glove_raw[i] : raw_glove_ranges(i, 0);
-				raw_glove_ranges(i, 1) = (glove_raw[i] > raw_glove_ranges(i, 2)) ? glove_raw[i] : raw_glove_ranges(i, 1);
+				raw_glove_ranges(i, 0) = (glove_raw[i] < raw_glove_ranges(i, 0)) ? glove_raw[i] : raw_glove_ranges(i, 0);
+				raw_glove_ranges(i, 1) = (glove_raw[i] > raw_glove_ranges(i, 1)) ? glove_raw[i] : raw_glove_ranges(i, 1);
 			}
 
 		}
@@ -406,13 +415,13 @@ int main()
 	viz_ctx.pose_idx = -1;
 	viz_register_update_cb(update_viz, (void*)&viz_ctx);
 
+	// Capture sensor value ranges from the glove
+	viz_ctx.state = UpdateVizCtx::kVizPose;
+	MatrixXd glove_ranges = get_glove_ranges();
+
 	// Fire up the viz, movie time
 	printf("Staring Viz\n");
 	viz_init(filePath.c_str(), licensePath.c_str());
-
-	// Capture sensor value ranges from the glove
-	viz_ctx.state = UpdateVizCtx::kVizGloveInput;
-	MatrixXd glove_ranges = get_glove_ranges();
 
 	MatrixXd true_ranges(m->nu, 2);
 	for (size_t i = 0; i < m->nu; i++)
@@ -431,7 +440,10 @@ int main()
 	// Normalize the true values
 	//val = (val - min)/(max-min)
 	MatrixXd true_values_n(true_values.rows(), true_values.cols());
-	true_values_n = (true_ranges - true_ranges.col(1)).cwiseProduct((true_ranges.col(2) - true_ranges.col(1)).cwiseInverse());
+
+	cout << endl << (true_ranges.col(1) - true_ranges.col(0)).cwiseInverse();
+
+	true_values_n = (true_ranges - true_ranges.col(0)).cwiseProduct((true_ranges.col(1) - true_ranges.col(0)).cwiseInverse());
 
 	//Normalized the glove samples
 	MatrixXd glove_values_n(glove_values.rows(), glove_values.cols());

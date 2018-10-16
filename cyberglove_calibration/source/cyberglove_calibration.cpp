@@ -10,17 +10,53 @@
 #include <sstream>
 #include <vector>
 
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+
+#include <boost/serialization/array.hpp>
+#define EIGEN_DENSEBASE_PLUGIN "EigenDenseBaseAddons.h"
+
 #include "Eigen/Dense"
 
 #include "cyberGlove_utils.h"
 #include "mujoco.h"
 #include "viz.h"
 
+
 using namespace std;
 using Eigen::MatrixXd;
 
 const int kNumGloveSensors = 22;
 const size_t kNumPoseSamples = 100;
+ 
+// TODO: Put this in it's own module
+// Boost Serialization Helper
+
+template <typename T>
+bool serialize(const T& data, const std::string& filename) {
+	std::ofstream ofs(filename.c_str(), std::ios::out);
+	if (!ofs.is_open())
+		return false;
+	{
+		boost::archive::binary_oarchive oa(ofs);
+		oa << data;
+	}
+	ofs.close();
+	return true;
+}
+
+template <typename T>
+bool deserialize(T& data, const std::string& filename) {
+	std::ifstream ifs(filename.c_str(), std::ios::in);
+	if (!ifs.is_open())
+		return false;
+	{
+		boost::archive::binary_iarchive ia(ifs);
+		ia >> data;
+	}
+	ifs.close();
+	return true;
+}
 
 struct PoseData {
 	int poseIndex = -1;
@@ -267,7 +303,7 @@ MatrixXd capture_glove_data(UpdateVizCtx& ctx, const MatrixXd& poses, MatrixXd& 
 		cout << " Done capturing calibration data" << endl;
 	}
 
-	return MatrixXd();
+	return glove_samples;
 }
 
 MatrixXd gen_true_values_from_poses(const MatrixXd& poses)
@@ -423,7 +459,7 @@ int main()
 
 	// Capture sensor value ranges from the glove
 	viz_ctx.state = UpdateVizCtx::kVizPose;
-	MatrixXd glove_ranges;// = get_glove_ranges();
+	MatrixXd glove_ranges = get_glove_ranges();
 
 	// Fire up the viz, movie time
 	printf("Staring Viz\n");
@@ -436,9 +472,11 @@ int main()
 		true_ranges(i, 1) = m->actuator_ctrlrange[2 * i + 1];
 	}
 
+
+
 	// Capture calibration vectors from the glove
 	// (Also continue to update ranges)
-	MatrixXd glove_values;// = capture_glove_data(viz_ctx, poses, glove_ranges);
+	MatrixXd glove_values = capture_glove_data(viz_ctx, poses, glove_ranges);
 
 	// Generate true data vectors using the calibratration pose matrix
 	MatrixXd true_values = gen_true_values_from_poses(poses);

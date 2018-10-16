@@ -307,14 +307,14 @@ MatrixXd capture_glove_data(UpdateVizCtx& ctx, const MatrixXd& poses, MatrixXd& 
 
 MatrixXd gen_true_values_from_poses(const MatrixXd& poses)
 {
-	MatrixXd true_values = MatrixXd::Zero(poses.cols(), kNumPoseSamples*poses.cols());
+	MatrixXd true_values = MatrixXd::Zero(poses.cols(), kNumPoseSamples*poses.rows());
 
-	for (int i_pose = 0; i_pose < poses.cols(); i_pose++)
+	for (int i_pose = 0; i_pose < poses.rows(); i_pose++)
 	{
 		for (size_t j_sample = 0; j_sample < kNumPoseSamples; j_sample++)
 		{
 			// Populate the true samples with the values from the poses CSV
-			true_values.col(i_pose*kNumPoseSamples + j_sample) = poses.row(i_pose);
+			true_values.col(i_pose*kNumPoseSamples + j_sample) = poses.row(i_pose).transpose();
 		}
 	}
 	return true_values;
@@ -449,9 +449,17 @@ int main(int argc, char** argv)
 	cg_opt->calibSenor_n = kNumGloveSensors;
 
 	//TODO: Technically these can go, as we won't ever be using them in this program.
+#if 0
 	cg_opt->calibFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove\\calib\\cGlove_Adroit_actuator_default.calib";
 	cg_opt->userRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove\\calib\\cGlove_Adroit_actuator_default.userRange";
 	cg_opt->handRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove\\calib\\cGlove_Adroit_actuator_default.handRange";
+#endif
+
+#if 1
+	cg_opt->calibFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\build\\new_calib\\output.calib";
+	cg_opt->userRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\build\\new_calib\\output.userRange";
+	cg_opt->handRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\build\\new_calib\\output.handRange";
+#endif
 
 	cGlove_init(cg_opt);
 
@@ -468,13 +476,19 @@ int main(int argc, char** argv)
 	printf("Staring Viz\n");
 	viz_init(filePath.c_str(), licensePath.c_str());
 
+#if 1
+	viz_ctx.state = UpdateVizCtx::kVizGloveInput;
+	while (true)
+		Sleep(5000);
+	return 0;
+#endif
+
 	MatrixXd true_ranges(m->nu, 2);
 	for (size_t i = 0; i < m->nu; i++)
 	{
 		true_ranges(i, 0) = m->actuator_ctrlrange[2 * i];
 		true_ranges(i, 1) = m->actuator_ctrlrange[2 * i + 1];
 	}
-
 
 
 	// Capture calibration vectors from the glove
@@ -495,6 +509,8 @@ int main(int argc, char** argv)
 
 	//TODO: Compute calibration
 	MatrixXd calibration = compute_calibration(true_values_n, glove_values_n);
+
+	cout << "calibration" << endl << calibration << endl;
 
 	save_calibration("output", glove_ranges, true_ranges, calibration);
 

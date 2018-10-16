@@ -22,7 +22,6 @@
 #include "mujoco.h"
 #include "viz.h"
 
-
 using namespace std;
 using Eigen::MatrixXd;
 
@@ -323,8 +322,9 @@ MatrixXd gen_true_values_from_poses(const MatrixXd& poses)
 
 MatrixXd compute_calibration(const MatrixXd& true_values_n, const MatrixXd& glove_values_n)
 {
-	//Following are the mappings for teh Adroit hand
-
+	// Following are the mappings for teh Adroit hand
+	// The mappings came from matlab, and thus the indices are off by 1.
+	// Just an FYI
 	// How the raw signals from the cyberglove map into the fingers
 	std::vector<std::vector<int>> map_raw =
 	{ 
@@ -366,13 +366,13 @@ MatrixXd compute_calibration(const MatrixXd& true_values_n, const MatrixXd& glov
 		denom.bottomRows(1) = MatrixXd::Ones(1, glove_values_n.cols());
 		for (int i = 0; i < map_raw_f.size(); i++)
 		{
-			denom.row(i) = glove_values_n.row(map_raw_f[i]);
+			denom.row(i) = glove_values_n.row(map_raw_f[i] - 1);
 		}
 
 		MatrixXd numer = MatrixXd::Zero(map_cal_f.size(), true_values_n.cols());
 		for (int i = 0; i < map_cal_f.size(); i++)
 		{
-			numer.row(i) = true_values_n.row(map_cal_f[i]);
+			numer.row(i) = true_values_n.row(map_cal_f[i] - 1);
 		}
 
 		// We're solving for Xa=b, as opposed to the usual aX=b here
@@ -384,9 +384,9 @@ MatrixXd compute_calibration(const MatrixXd& true_values_n, const MatrixXd& glov
 			for (int col = 0; col < map_raw_f.size() + 1; col++)
 			{
 				if (col < map_raw_f.size())
-					calibration(map_cal_f[row], map_raw_f[col]) = sol(row, col);
+					calibration(map_cal_f[row] - 1, map_raw_f[col] - 1) = sol(row, col);
 				else
-					calibration(map_cal_f[row], glove_values_n.rows()) = sol(row,col);
+					calibration(map_cal_f[row] - 1, glove_values_n.rows()) = sol(row,col);
 			}
 			
 		}
@@ -421,7 +421,7 @@ MatrixXd normalize_samples(const MatrixXd& samples, const MatrixXd& ranges)
 	return scaling_factor.asDiagonal()*bias_corrected;
 }
 
-int main()
+int main(int argc, char** argv)
 {
 	string poses_csv("C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\bin\\Adroitcalib_actuatorPoses.csv");
 
@@ -446,10 +446,13 @@ int main()
 	//Set default options
 	cgOption* cg_opt = &option;
 	cg_opt->glove_port = "COM3";
-	cg_opt->calibSenor_n = 22;
+	cg_opt->calibSenor_n = kNumGloveSensors;
+
+	//TODO: Technically these can go, as we won't ever be using them in this program.
 	cg_opt->calibFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove\\calib\\cGlove_Adroit_actuator_default.calib";
 	cg_opt->userRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove\\calib\\cGlove_Adroit_actuator_default.userRange";
 	cg_opt->handRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove\\calib\\cGlove_Adroit_actuator_default.handRange";
+
 	cGlove_init(cg_opt);
 
 	//Register the udpate callback function

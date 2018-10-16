@@ -170,7 +170,6 @@ void update_viz(double *time, double *qpos, double *qvel, int nq, int nv, void* 
 			qpos[i] = viz_ctx->poses(viz_ctx->pose_idx, i);
 	}
 
-
 	// Visualize glove data
 	if (UpdateVizCtx::VizStates::kVizGloveInput == viz_ctx->state)
 	{
@@ -421,6 +420,23 @@ MatrixXd normalize_samples(const MatrixXd& samples, const MatrixXd& ranges)
 	return scaling_factor.asDiagonal()*bias_corrected;
 }
 
+void eigen_matrix_to_matlab(const MatrixXd& mat, const string& matrix_name, const string& filename)
+{
+	std::ofstream out(filename);
+
+	out << matrix_name << " = [ ";
+
+	for (int i = 0; i < mat.rows(); i++)
+	{
+		out << mat.row(i) << "; ";
+	}
+
+	out << "]" << endl;
+	out.close();
+
+	return;
+}
+
 int main(int argc, char** argv)
 {
 	string poses_csv("C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\bin\\Adroitcalib_actuatorPoses.csv");
@@ -513,6 +529,12 @@ int main(int argc, char** argv)
 	cout << "calibration" << endl << calibration << endl;
 
 	save_calibration("output", glove_ranges, true_ranges, calibration);
+
+	eigen_matrix_to_matlab(glove_ranges, "glove_ranges", "glove_ranges.m");
+	eigen_matrix_to_matlab(true_ranges, "true_ranges", "true_ranges.m");
+	eigen_matrix_to_matlab(calibration, "calibration", "calibration.m");
+	eigen_matrix_to_matlab(glove_values_n, "glove_samples_n", "glove_values_n.m");
+	eigen_matrix_to_matlab(true_values_n, "true_values_n", "true_values_n.m");
 
 	// Get up, do a little dance and then close
 	while(true)

@@ -118,7 +118,7 @@ bool load_poses(const string& filename, MatrixXd& poses_m, vector<string>& joint
 		{
 			if (strspn(token.c_str(), "-.0123456789") == token.size())
 			{
-				double angle = stol(token, nullptr);
+				double angle = stod(token, nullptr);
 				angles.push_back(angle);
 			}
 			else
@@ -163,7 +163,7 @@ void update_viz(double *time, double *qpos, double *qvel, int nq, int nv, void* 
 {
 	UpdateVizCtx* viz_ctx = (UpdateVizCtx*)user_ctx;
 
-	//Visualize glove data
+	//Visualize a pose
 	if (UpdateVizCtx::VizStates::kVizPose == viz_ctx->state && -1 != viz_ctx->pose_idx)
 	{
 		for (int i = 0; i < viz_ctx->poses.cols(); i++)
@@ -221,49 +221,6 @@ MatrixXd get_glove_ranges()
 	
 	return raw_ranges;
 }
-
-
-//TODO: Delete this eventually
-//void capture_cal_vectors(UpdateVizCtx& ctx,
-//						const vector<vector<double>>& poses,
-//						vector<PoseData>& cal_vectors,
-//						vector<pair<double, double>>& joint_max_min)
-//{
-//	cout << "Calibration: Mimic poses displayed. Hit enter to begin capture." << endl;
-//
-//	cal_vectors.resize(poses.size());
-//
-//	for (size_t i = 0; i < poses.size(); i++)
-//	{
-//		ctx.pose_idx = i;
-//		cout << "Pose " << i << ": ";
-//		cin.ignore();
-//
-//		for (size_t j = 0; j < kNumPoseSamples; j++)
-//		{
-//			double glove_samples[kNumGloveSensors] = { 0 };
-//
-//			cGlove_getData(glove_samples, kNumGloveSensors);
-//
-//			// Use this opportunity to update ranges for normalization
-//			for (size_t i = 0; i < kNumGloveSensors; i++)
-//			{
-//				if (glove_samples[i] > joint_max_min[i].first)
-//					joint_max_min[i].first = glove_samples[i];
-//
-//				if (glove_samples[i] < joint_max_min[i].second)
-//					joint_max_min[i].second = glove_samples[i];
-//			}
-//
-//			memcpy(&(cal_vectors[i].vals[j][0]), glove_samples, sizeof(double)*kNumGloveSensors);
-//
-//			if (0 == j % 5)
-//				cout << ".";
-//		}
-//		cout << " Done capturing calibration data" << endl;
-//	}
-//}
-
 
 MatrixXd capture_glove_data(UpdateVizCtx& ctx, const MatrixXd& poses, MatrixXd& raw_glove_ranges)
 {
@@ -416,7 +373,7 @@ bool save_calibration(const string& filename_prefix,
 MatrixXd normalize_samples(const MatrixXd& samples, const MatrixXd& ranges)
 {
 	MatrixXd scaling_factor = (ranges.col(1) - ranges.col(0)).cwiseInverse();
-	MatrixXd bias_corrected = (samples.colwise() - samples.col(0));
+	MatrixXd bias_corrected = (samples.colwise() - ranges.col(0));
 	return scaling_factor.asDiagonal()*bias_corrected;
 }
 
@@ -455,8 +412,10 @@ int main(int argc, char** argv)
 	}
 	else
 	{
-		cout << "Loaded " << poses.size() << " poses, for " << joint_map.size() << " joints." << endl;
+		cout << "Loaded " << poses.rows() << " poses, for " << joint_map.size() << " joints." << endl;
 	}
+	eigen_matrix_to_matlab(poses, "poses", "poses.m");
+
 
 	//CyberGlove config and init
 	//Set default options
@@ -492,7 +451,7 @@ int main(int argc, char** argv)
 	printf("Staring Viz\n");
 	viz_init(filePath.c_str(), licensePath.c_str());
 
-#if 1
+#if 0
 	viz_ctx.state = UpdateVizCtx::kVizGloveInput;
 	while (true)
 		Sleep(5000);
@@ -505,19 +464,33 @@ int main(int argc, char** argv)
 		true_ranges(i, 0) = m->actuator_ctrlrange[2 * i];
 		true_ranges(i, 1) = m->actuator_ctrlrange[2 * i + 1];
 	}
+	eigen_matrix_to_matlab(true_ranges, "true_ranges", "true_ranges.m");
 
+	//MatrixXd poses_scaled = poses;
+	////Each row is a pose, each col is an actuator in MuJoCo
+	//for (int col = 0; col < poses.cols(); col++)
+	//{
+	//	double rmin = true_ranges(col, 0);
+	//	double rmax = true_ranges(col, 1);
+	//	for (int row = 0; col < poses.rows(); row++)
+	//	{
 
-	// Capture calibration vectors from the glove
-	// (Also continue to update ranges)
-	MatrixXd glove_values = capture_glove_data(viz_ctx, poses, glove_ranges);
+	//	}
+	//}
 
 	// Generate true data vectors using the calibratration pose matrix
 	MatrixXd true_values = gen_true_values_from_poses(poses);
+	eigen_matrix_to_matlab(true_values, "true_values", "true_values.m");
 
 	// Normalize the true values
 	//val = (val - min)/(max-min)
 	MatrixXd true_values_n(true_values.rows(), true_values.cols());
 	true_values_n = normalize_samples(true_values, true_ranges);
+	eigen_matrix_to_matlab(true_values_n, "true_values_n", "true_values_n.m");
+
+	// Capture calibration vectors from the glove
+	// (Also continue to update ranges)
+	MatrixXd glove_values = capture_glove_data(viz_ctx, poses, glove_ranges);
 
 	//Normalized the glove samples
 	MatrixXd glove_values_n(glove_values.rows(), glove_values.cols());
@@ -534,7 +507,6 @@ int main(int argc, char** argv)
 	eigen_matrix_to_matlab(true_ranges, "true_ranges", "true_ranges.m");
 	eigen_matrix_to_matlab(calibration, "calibration", "calibration.m");
 	eigen_matrix_to_matlab(glove_values_n, "glove_samples_n", "glove_values_n.m");
-	eigen_matrix_to_matlab(true_values_n, "true_values_n", "true_values_n.m");
 
 	// Get up, do a little dance and then close
 	while(true)

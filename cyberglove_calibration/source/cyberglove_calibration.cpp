@@ -23,6 +23,7 @@
 #include "viz.h"
 
 using namespace std;
+using namespace Eigen;
 using Eigen::MatrixXd;
 
 const int kNumGloveSensors = 22;
@@ -190,8 +191,6 @@ MatrixXd get_glove_ranges()
 	raw_ranges.col(0) = MatrixXd::Constant(raw_ranges.rows(), 1, 1000);
 	raw_ranges.col(1) = MatrixXd::Constant(raw_ranges.rows(), 1, -1000);
 
-	cout << raw_ranges;
-
 	cout << "Getting normalization data." << endl;
 	cout << "Please explore joint limits for 10 seconds." << endl;
 
@@ -281,6 +280,48 @@ MatrixXd gen_true_values_from_poses(const MatrixXd& poses)
 	return true_values;
 }
 
+void eigen_matrix_to_matlab(const MatrixXd& mat, const string& matrix_name, const string& filename)
+{
+	std::ofstream out(filename);
+
+	out << matrix_name << " = [ ";
+
+	for (int i = 0; i < mat.rows(); i++)
+	{
+		out << mat.row(i) << "; ";
+	}
+
+	out << "]" << endl;
+	out.close();
+
+	return;
+}
+
+template<typename M>
+M load_csv(const std::string& path) {
+	std::ifstream indata;
+	indata.open(path);
+	std::string line;
+	std::vector<double> values;
+	int rows = 0;
+	while (std::getline(indata, line)) {
+		std::stringstream lineStream(line);
+		std::string cell;
+		while (std::getline(lineStream, cell, ',')) {
+			values.push_back(std::stod(cell));
+		}
+		++rows;
+	}
+	return Map<const Matrix<typename M::Scalar, M::RowsAtCompileTime, M::ColsAtCompileTime, RowMajor>>(values.data(), rows, values.size() / rows);
+}
+
+void store_csv(const std::string& name, MatrixXd matrix)
+{
+	const static IOFormat CSVFormat(StreamPrecision, DontAlignCols, ", ", "\n");
+	ofstream file(name.c_str());
+	file << matrix.format(CSVFormat);
+}
+
 MatrixXd compute_calibration(const MatrixXd& true_values_n, const MatrixXd& glove_values_n)
 {
 	// Following are the mappings for teh Adroit hand
@@ -340,6 +381,10 @@ MatrixXd compute_calibration(const MatrixXd& true_values_n, const MatrixXd& glov
 	   // xA = B: A ^ T x^T = B ^ T and you have the form you want.
 		MatrixXd sol = (denom.transpose()).colPivHouseholderQr().solve(numer.transpose()).transpose();
 
+		eigen_matrix_to_matlab(numer, "numer", "numer.m");
+		eigen_matrix_to_matlab(denom, "denom", "denom.m");
+		eigen_matrix_to_matlab(sol, "sol", "sol.m");
+
 		for (int row = 0; row < map_cal_f.size(); row++)
 		{
 			for (int col = 0; col < map_raw_f.size() + 1; col++)
@@ -364,10 +409,10 @@ bool save_calibration(const string& filename_prefix,
 	const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
 
 	ofstream hand_range_file((filename_prefix+".handRange").c_str());
-	hand_range_file << true_ranges.format(CSVFormat);
+	hand_range_file << true_ranges.transpose();
 
 	ofstream user_range_file((filename_prefix + ".userRange").c_str());
-	user_range_file << glove_ranges.format(CSVFormat);
+	user_range_file << glove_ranges.transpose();
 
 	ofstream cal_file((filename_prefix + ".calib").c_str());
 	cal_file << calibration;
@@ -377,39 +422,50 @@ bool save_calibration(const string& filename_prefix,
 
 MatrixXd normalize_samples(const MatrixXd& samples, const MatrixXd& ranges)
 {
-	//cout << "RANGES:" << endl << ranges;
-
 	MatrixXd scaling_factor = (ranges.col(1) - ranges.col(0)).cwiseInverse();
 
-	//If there's no varance, the scaling_factor can have nan values. In this case, set the scaling factor to 1.
+	//If there's no varance, the scaling_factor can have inf values. In this case, set the scaling factor to 0.
 	for (int i = 0; i < scaling_factor.rows(); i++)
-		scaling_factor(i, 0) = isnan(scaling_factor(i, 0)) ? 1 : scaling_factor(i, 0);
-
-	//cout << "SCALING FACTOR:" << endl << scaling_factor;
+		scaling_factor(i, 0) = isinf(scaling_factor(i, 0)) ? 0 : scaling_factor(i, 0);
 
 	MatrixXd bias_corrected = (samples.colwise() - ranges.col(0));
 	return scaling_factor.asDiagonal()*bias_corrected;
 }
 
-void eigen_matrix_to_matlab(const MatrixXd& mat, const string& matrix_name, const string& filename)
+//Performs shift and scale operation
+//b1 + (s - a1)*(b2 - b1) / (a2 - a1)
+double remap(double ori_val, double ori_min, double ori_max, double new_min, double new_max)
 {
-	std::ofstream out(filename);
+	return new_min + (ori_val - ori_min)*(new_max - new_min) / (ori_max - ori_min);
+}
 
-	out << matrix_name << " = [ ";
+// Pose space to muJoCo joint space:
+//		Poses in the input file have a range from -1 to 1.
+//		We want to map these ranges from jmin to jmax
+MatrixXd p2j(const MatrixXd& poses, const MatrixXd& mj_ranges)
+{
+	MatrixXd new_poses(poses.rows(), poses.cols());
 
-	for (int i = 0; i < mat.rows(); i++)
+	for (int row = 0; row < poses.rows(); row++)
 	{
-		out << mat.row(i) << "; ";
+		for (int col = 0; col < poses.cols(); col++)
+		{
+			double joint_min = mj_ranges(col, 0);
+			double joint_max = mj_ranges(col, 1);
+
+			new_poses(row, col) = remap(poses(row, col), -1, 1, joint_min, joint_max);
+		}
 	}
-
-	out << "]" << endl;
-	out.close();
-
-	return;
+	return new_poses;
 }
 
 int main(int argc, char** argv)
 {
+	bool viz_glove_input_only = false;
+	bool get_glove_vals_from_csv = false;
+	bool store_glove_vals_to_csv = false;
+	bool use_default_calib = true;
+
 	string poses_csv("C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\bin\\Adroitcalib_actuatorPoses.csv");
 
 	//MuJoCo config
@@ -430,26 +486,24 @@ int main(int argc, char** argv)
 	}
 	eigen_matrix_to_matlab(poses, "poses", "poses.m");
 
-
 	//CyberGlove config and init
 	//Set default options
 	cgOption* cg_opt = &option;
 	cg_opt->glove_port = "COM3";
 	cg_opt->calibSenor_n = 24;
 
-	//TODO: Technically these can go, as we won't ever be using them in this program.
-#if 0
-	cg_opt->calibFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove\\calib\\cGlove_Adroit_actuator_default.calib";
-	cg_opt->userRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove\\calib\\cGlove_Adroit_actuator_default.userRange";
-	cg_opt->handRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove\\calib\\cGlove_Adroit_actuator_default.handRange";
-#endif
-
-#if 1
-	cg_opt->calibFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\build\\new_calib\\output.calib";
-	cg_opt->userRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\build\\new_calib\\output.userRange";
-	cg_opt->handRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\build\\new_calib\\output.handRange";
-#endif
-
+	if (use_default_calib)
+	{
+		cg_opt->calibFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove\\calib\\cGlove_Adroit_actuator_default.calib";
+		cg_opt->userRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove\\calib\\cGlove_Adroit_actuator_default.userRange";
+		cg_opt->handRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove\\calib\\cGlove_Adroit_actuator_default.handRange";
+	}
+	else 
+	{
+		cg_opt->calibFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\build\\new_calib\\output.calib";
+		cg_opt->userRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\build\\new_calib\\output.userRange";
+		cg_opt->handRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\build\\new_calib\\output.handRange";
+	}
 
 	cGlove_init(cg_opt);
 
@@ -463,24 +517,19 @@ int main(int argc, char** argv)
 	viz_init(filePath.c_str(), licensePath.c_str());
 
 	//Viz glove input only
-#if 1
-	viz_ctx.state = UpdateVizCtx::kVizGloveInput;
-	while (true)
-		Sleep(5000);
-	return 0;
-#endif
+	if (viz_glove_input_only)
+	{
+		viz_ctx.state = UpdateVizCtx::kVizGloveInput;
+		while (true)
+			Sleep(5000);
+		return 0;
+	}
 
 	// Capture sensor value ranges from the glove
 	viz_ctx.state = UpdateVizCtx::kVizPose;
 	MatrixXd glove_ranges = get_glove_ranges();
-	cout << "INITIAL GLOVE RANGES" << endl << glove_ranges;
 
-#if 0
-	viz_ctx.state = UpdateVizCtx::kVizGloveInput;
-	while (true)
-		Sleep(5000);
-	return 0;
-#endif
+	cout << "INITIAL GLOVE RANGES:" << endl << glove_ranges << endl;
 
 	MatrixXd true_ranges(m->nu, 2);
 	for (size_t i = 0; i < m->nu; i++)
@@ -490,17 +539,26 @@ int main(int argc, char** argv)
 	}
 	eigen_matrix_to_matlab(true_ranges, "true_ranges", "true_ranges.m");
 
-	//MatrixXd poses_scaled = poses;
-	////Each row is a pose, each col is an actuator in MuJoCo
-	//for (int col = 0; col < poses.cols(); col++)
-	//{
-	//	double rmin = true_ranges(col, 0);
-	//	double rmax = true_ranges(col, 1);
-	//	for (int row = 0; col < poses.rows(); row++)
-	//	{
+	cout << "TRUE RANGES:" << endl << true_ranges << endl;
 
+	// Clamp the poses to the ctrl ranges
+	//cout << "Poses before" << endl << poses << endl;
+	//for (int row = 0; row < poses.rows(); row++)
+	//{
+	//	for (int col = 0; col < poses.cols(); col++)
+	//	{
+	//		double rmin = true_ranges(col, 0);
+	//		double rmax = true_ranges(col, 1);
+	//		poses(row,col) = (poses(row, col) < rmin)?rmin:poses(row,col);
+	//		poses(row, col) = (poses(row, col) > rmax) ? rmax : poses(row, col);
 	//	}
 	//}
+	//cout << "Poses after" << endl << poses << endl;
+
+	// Remap the poses from their prior range to the normalized range.
+	cout << "Poses before" << endl << poses << endl;
+	poses = p2j(poses, true_ranges);
+	cout << "Poses after" << endl << poses << endl;
 
 	// Generate true data vectors using the calibratration pose matrix
 	MatrixXd true_values = gen_true_values_from_poses(poses);
@@ -514,11 +572,28 @@ int main(int argc, char** argv)
 
 	// Capture calibration vectors from the glove
 	// (Also continue to update ranges)
-	MatrixXd glove_values = capture_glove_data(viz_ctx, poses, glove_ranges);
+	MatrixXd glove_values;
+	if (!get_glove_vals_from_csv)
+	{
+		glove_values = capture_glove_data(viz_ctx, poses, glove_ranges);
+	}
+	else
+	{
+		cout << "Loaded glove values and ranges from CSV file" << endl;
+		glove_values = load_csv<MatrixXd>("glove_values.csv");
+		glove_ranges = load_csv<MatrixXd>("glove_ranges.csv");
+	}
+
+	if (store_glove_vals_to_csv)
+	{
+		cout << "Stored glove values and ranges to CSV file" << endl;
+		store_csv("glove_ranges.csv", glove_ranges);
+		store_csv("glove_values.csv", glove_values);
+	}
+
 	eigen_matrix_to_matlab(glove_values, "glove_values", "glove_values.m");
 	eigen_matrix_to_matlab(glove_ranges, "glove_ranges", "glove_ranges.m");
 	cout << "UPDATED GLOVE RANGES" << endl << glove_ranges;
-
 
 	//Normalized the glove samples
 	MatrixXd glove_values_n(glove_values.rows(), glove_values.cols());

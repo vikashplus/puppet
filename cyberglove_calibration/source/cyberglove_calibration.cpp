@@ -174,6 +174,11 @@ void update_viz(double *time, double *qpos, double *qvel, int nq, int nv, void* 
 	if (UpdateVizCtx::VizStates::kVizGloveInput == viz_ctx->state)
 	{
 		cGlove_getData(qpos, nq);
+		for (int i = 0; i < nq; i++)
+		{
+			cout << qpos[i] << endl;
+		}
+		cout << endl;
 	}
 }
 
@@ -372,7 +377,16 @@ bool save_calibration(const string& filename_prefix,
 
 MatrixXd normalize_samples(const MatrixXd& samples, const MatrixXd& ranges)
 {
+	//cout << "RANGES:" << endl << ranges;
+
 	MatrixXd scaling_factor = (ranges.col(1) - ranges.col(0)).cwiseInverse();
+
+	//If there's no varance, the scaling_factor can have nan values. In this case, set the scaling factor to 1.
+	for (int i = 0; i < scaling_factor.rows(); i++)
+		scaling_factor(i, 0) = isnan(scaling_factor(i, 0)) ? 1 : scaling_factor(i, 0);
+
+	//cout << "SCALING FACTOR:" << endl << scaling_factor;
+
 	MatrixXd bias_corrected = (samples.colwise() - ranges.col(0));
 	return scaling_factor.asDiagonal()*bias_corrected;
 }
@@ -421,7 +435,7 @@ int main(int argc, char** argv)
 	//Set default options
 	cgOption* cg_opt = &option;
 	cg_opt->glove_port = "COM3";
-	cg_opt->calibSenor_n = kNumGloveSensors;
+	cg_opt->calibSenor_n = 24;
 
 	//TODO: Technically these can go, as we won't ever be using them in this program.
 #if 0
@@ -436,6 +450,7 @@ int main(int argc, char** argv)
 	cg_opt->handRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\build\\new_calib\\output.handRange";
 #endif
 
+
 	cGlove_init(cg_opt);
 
 	//Register the udpate callback function
@@ -443,13 +458,22 @@ int main(int argc, char** argv)
 	viz_ctx.pose_idx = -1;
 	viz_register_update_cb(update_viz, (void*)&viz_ctx);
 
-	// Capture sensor value ranges from the glove
-	viz_ctx.state = UpdateVizCtx::kVizPose;
-	MatrixXd glove_ranges = get_glove_ranges();
-
 	// Fire up the viz, movie time
 	printf("Staring Viz\n");
 	viz_init(filePath.c_str(), licensePath.c_str());
+
+	//Viz glove input only
+#if 1
+	viz_ctx.state = UpdateVizCtx::kVizGloveInput;
+	while (true)
+		Sleep(5000);
+	return 0;
+#endif
+
+	// Capture sensor value ranges from the glove
+	viz_ctx.state = UpdateVizCtx::kVizPose;
+	MatrixXd glove_ranges = get_glove_ranges();
+	cout << "INITIAL GLOVE RANGES" << endl << glove_ranges;
 
 #if 0
 	viz_ctx.state = UpdateVizCtx::kVizGloveInput;
@@ -491,22 +515,23 @@ int main(int argc, char** argv)
 	// Capture calibration vectors from the glove
 	// (Also continue to update ranges)
 	MatrixXd glove_values = capture_glove_data(viz_ctx, poses, glove_ranges);
+	eigen_matrix_to_matlab(glove_values, "glove_values", "glove_values.m");
+	eigen_matrix_to_matlab(glove_ranges, "glove_ranges", "glove_ranges.m");
+	cout << "UPDATED GLOVE RANGES" << endl << glove_ranges;
+
 
 	//Normalized the glove samples
 	MatrixXd glove_values_n(glove_values.rows(), glove_values.cols());
 	glove_values_n = normalize_samples(glove_values, glove_ranges);
+	eigen_matrix_to_matlab(glove_values_n, "glove_samples_n", "glove_values_n.m");
 
-	//TODO: Compute calibration
+	//Compute calibration
 	MatrixXd calibration = compute_calibration(true_values_n, glove_values_n);
+	eigen_matrix_to_matlab(calibration, "calibration", "calibration.m");
 
 	cout << "calibration" << endl << calibration << endl;
 
 	save_calibration("output", glove_ranges, true_ranges, calibration);
-
-	eigen_matrix_to_matlab(glove_ranges, "glove_ranges", "glove_ranges.m");
-	eigen_matrix_to_matlab(true_ranges, "true_ranges", "true_ranges.m");
-	eigen_matrix_to_matlab(calibration, "calibration", "calibration.m");
-	eigen_matrix_to_matlab(glove_values_n, "glove_samples_n", "glove_values_n.m");
 
 	// Get up, do a little dance and then close
 	while(true)

@@ -12,6 +12,10 @@
 
 #include "Eigen/Dense"
 
+#undef max
+#undef min
+#include "cxxopts.hpp"
+
 #include "cyberGlove_utils.h"
 #include "mujoco.h"
 #include "viz.h"
@@ -328,9 +332,10 @@ MatrixXd compute_calibration(const MatrixXd& true_values_n, const MatrixXd& glov
 	    // xA = B: A ^ T x^T = B ^ T and you have the form you want.
 		MatrixXd sol = (denom.transpose()).colPivHouseholderQr().solve(numer.transpose()).transpose();
 
-		eigen_matrix_to_matlab(numer, "numer", "numer.m");
-		eigen_matrix_to_matlab(denom, "denom", "denom.m");
-		eigen_matrix_to_matlab(sol, "sol", "sol.m");
+		// These are helpful for debugging, manually checking against the operations in do_calibration.m
+		//eigen_matrix_to_matlab(numer, "numer", "numer.m");
+		//eigen_matrix_to_matlab(denom, "denom", "denom.m");
+		//eigen_matrix_to_matlab(sol, "sol", "sol.m");
 
 		for (int row = 0; row < map_cal_f.size(); row++)
 		{
@@ -428,19 +433,20 @@ MatrixXd p2j(const MatrixXd& poses, const MatrixXd& mj_ranges)
 	return new_poses;
 }
 
-int main(int argc, char** argv)
+int do_calibration(const cxxopts::ParseResult& opts)
 {
-	bool viz_glove_input_only = true;
+	string mujoco_path = opts["mj_path"].as<string>();
+	string poses_csv = opts["pose_file"].as<string>();
+	string com_port = opts["port"].as<string>();
+	string prefix = opts["prefix"].as<string>();
+	bool viz_glove_input_only = opts["viz_only"].as<bool>();
+	string mujoco_xml_path = opts["xml"].as<string>();
+
+	// Options for debugging
 	bool get_glove_vals_from_csv = false;
 	bool store_glove_vals_to_csv = false;
 	bool use_default_calib = false;
-
-	string poses_csv("C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\bin\\Adroitcalib_actuatorPoses.csv");
-
-	//MuJoCo config
-	string mujocoPath = getenv("MUJOCOPATH");
-	string filePath = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\bin\\adroit\\Adroit_hand.xml";
-	string licensePath = mujocoPath + "\\mjkey.txt";
+	bool write_to_m_files = false;
 
 	MatrixXd poses;
 	vector<string> joint_map;
@@ -453,12 +459,14 @@ int main(int argc, char** argv)
 	{
 		cout << "Loaded " << poses.rows() << " poses, for " << joint_map.size() << " joints." << endl;
 	}
-	eigen_matrix_to_matlab(poses, "poses", "poses.m");
+
+	if(write_to_m_files)
+		eigen_matrix_to_matlab(poses, "poses", "poses.m");
 
 	//CyberGlove config and init
 	//Set default options
 	cgOption* cg_opt = &option;
-	cg_opt->glove_port = "COM3";
+	cg_opt->glove_port = const_cast<char *>(com_port.c_str());
 	cg_opt->calibSenor_n = 24;
 
 	if (use_default_calib)
@@ -467,7 +475,7 @@ int main(int argc, char** argv)
 		cg_opt->userRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove\\calib\\cGlove_Adroit_actuator_default.userRange";
 		cg_opt->handRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove\\calib\\cGlove_Adroit_actuator_default.handRange";
 	}
-	else 
+	else
 	{
 		cg_opt->calibFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\build\\new_calib\\output.calib";
 		cg_opt->userRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\build\\new_calib\\output.userRange";
@@ -483,7 +491,10 @@ int main(int argc, char** argv)
 
 	// Fire up the viz, movie time
 	printf("Staring Viz\n");
-	viz_init(filePath.c_str(), licensePath.c_str());
+
+	//MuJoCo config
+	string mj_license_path = mujoco_path + "\\mjkey.txt";
+	viz_init(mujoco_xml_path.c_str(), mj_license_path.c_str());
 
 	//Viz glove input only
 	if (viz_glove_input_only)
@@ -504,19 +515,24 @@ int main(int argc, char** argv)
 		true_ranges(i, 0) = m->actuator_ctrlrange[2 * i];
 		true_ranges(i, 1) = m->actuator_ctrlrange[2 * i + 1];
 	}
-	eigen_matrix_to_matlab(true_ranges, "true_ranges", "true_ranges.m");
+
+	if (write_to_m_files)
+		eigen_matrix_to_matlab(true_ranges, "true_ranges", "true_ranges.m");
 
 	// Remap the poses from their original space to joint space
 	poses = p2j(poses, true_ranges);
 
 	// Generate true data vectors using the calibratration pose matrix
 	MatrixXd true_values = gen_true_values_from_poses(poses);
-	eigen_matrix_to_matlab(true_values, "true_values", "true_values.m");
+	if (write_to_m_files)
+		eigen_matrix_to_matlab(true_values, "true_values", "true_values.m");
 
 	// Normalize the true values
 	MatrixXd true_values_n(true_values.rows(), true_values.cols());
 	true_values_n = normalize_samples(true_values, true_ranges);
-	eigen_matrix_to_matlab(true_values_n, "true_values_n", "true_values_n.m");
+
+	if (write_to_m_files)
+		eigen_matrix_to_matlab(true_values_n, "true_values_n", "true_values_n.m");
 
 	// Capture calibration vectors from the glove
 	// (Also continue to update ranges)
@@ -539,22 +555,68 @@ int main(int argc, char** argv)
 		store_csv("glove_values.csv", glove_values);
 	}
 
-	eigen_matrix_to_matlab(glove_values, "glove_values", "glove_values.m");
-	eigen_matrix_to_matlab(glove_ranges, "glove_ranges", "glove_ranges.m");
+	if (write_to_m_files)
+	{
+		eigen_matrix_to_matlab(glove_values, "glove_values", "glove_values.m");
+		eigen_matrix_to_matlab(glove_ranges, "glove_ranges", "glove_ranges.m");
+	}
 
 	//Normalized the glove samples
 	MatrixXd glove_values_n(glove_values.rows(), glove_values.cols());
 	glove_values_n = normalize_samples(glove_values, glove_ranges);
-	eigen_matrix_to_matlab(glove_values_n, "glove_samples_n", "glove_values_n.m");
+
+	if (write_to_m_files)
+		eigen_matrix_to_matlab(glove_values_n, "glove_samples_n", "glove_values_n.m");
 
 	//Compute calibration
 	MatrixXd calibration = compute_calibration(true_values_n, glove_values_n);
-	eigen_matrix_to_matlab(calibration, "calibration", "calibration.m");
+
+	if (write_to_m_files)
+		eigen_matrix_to_matlab(calibration, "calibration", "calibration.m");
 
 	cout << "Saving caibration" << endl;
-	save_calibration("output", glove_ranges, true_ranges, calibration);
+	save_calibration(prefix, glove_ranges, true_ranges, calibration);
 
 	// Close the viz, time to go home.
 	viz_close();
-	return 0;
+}
+
+int main(int argc, char** argv)
+{
+	cxxopts::Options options(argv[0], " - calibration Utility for CyberGlove III");
+
+	options.add_options()
+		("help", "Print help")
+		("mj_path", "MUJOCO_PATH", cxxopts::value<string>()->default_value(getenv("MUJOCOPATH")))
+		("pose_file", "Pose file (CSV)", cxxopts::value<string>()->default_value("Adroitcalib_actuatorPoses.csv"))
+		("p,port", "Serial port (eg. \"COM3\")", cxxopts::value<string>()->default_value("COM3"))
+		("prefix", "Output calibration file prefixes", cxxopts::value<string>()->default_value("user"))
+		("v,viz_only", "Visualize a calibration", cxxopts::value<bool>()->default_value("false"))
+		("x,xml", "Adroit MuJoCo XML model", cxxopts::value<string>()->default_value("adroit\\Adroit_hand.xml"))
+		;
+
+	auto result = options.parse(argc, argv);
+
+	if (result.count("help"))
+	{
+		cout << options.help({ "", "Group" }) << std::endl;
+		exit(0);
+	}
+
+	if (!result.count("pose_file"))
+	{
+		cout << "No pose file provided, assuming: " << result["pose_file"].as<string>() << endl;
+	}
+
+	if (!result.count("port"))
+	{
+		cout << "No serial port provided, assuming: " << result["port"].as<string>() << endl;
+	}
+
+	if (!result.count("xml"))
+	{
+		cout << "No MuJoCo model XML provided, assuming: " << result["xml"].as<string>() << endl;
+	}
+
+	return do_calibration(result);
 }

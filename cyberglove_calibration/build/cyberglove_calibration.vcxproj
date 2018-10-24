@@ -22,6 +22,7 @@
     <ClCompile Include="..\..\cyberglove\source\CyberGlove.cpp" />
     <ClCompile Include="..\..\cyberglove\source\CyberGlove_utils.cpp" />
     <ClCompile Include="..\..\vive\sdk\GL\glew.c" />
+    <ClCompile Include="..\source\cg_cal_math.cpp" />
     <ClCompile Include="..\source\cyberglove_calibration.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>
@@ -33,6 +34,8 @@
   <ItemGroup>
     <ClInclude Include="..\..\cyberglove\source\CyberGlove.h" />
     <ClInclude Include="..\..\cyberglove\source\CyberGlove_utils.h" />
+    <ClInclude Include="..\source\cg_cal_math.h" />
+    <ClInclude Include="..\source\EigenDenseBaseAddons.h" />
     <ClInclude Include="..\source\viz.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -88,8 +91,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)\..\bin\</OutDir>
-    <IncludePath>$(MUJOCOPATH)\mjpro150\include;..\..\cyberglove\utils;..\..\cyberglove\source;..\..\vive\sdk;..\..\vive\sdk\openVR;..\..\vive\source\;..\eigen-git-mirror\;$(IncludePath)</IncludePath>
-    <LibraryPath>..\..\vive\sdk\openVR;$(MUJOCOPATH)\mjpro150\bin;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(MUJOCOPATH)\mjpro150\include;..\..\cyberglove\utils;..\..\cyberglove\source;..\..\vive\sdk;..\..\vive\sdk\openVR;..\..\vive\source\;..\eigen-git-mirror\;C:\Users\adept\Documents\boost_1_68_0;$(IncludePath)</IncludePath>
+    <LibraryPath>..\..\vive\sdk\openVR;$(MUJOCOPATH)\mjpro150\bin;C:\Users\adept\Documents\boost_1_68_0\lib64-msvc-14.1;$(LibraryPath)</LibraryPath>
     <SourcePath>..\source;..\..\vive\sdk\GL;..\..\cyberglove\utils;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

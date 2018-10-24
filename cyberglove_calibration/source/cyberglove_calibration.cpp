@@ -10,12 +10,6 @@
 #include <sstream>
 #include <vector>
 
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-
-#include <boost/serialization/array.hpp>
-#define EIGEN_DENSEBASE_PLUGIN "EigenDenseBaseAddons.h"
-
 #include "Eigen/Dense"
 
 #include "cyberGlove_utils.h"
@@ -29,39 +23,6 @@ using Eigen::MatrixXd;
 const int kNumGloveSensors = 22;
 const size_t kNumPoseSamples = 100;
  
-// TODO: Put this in it's own module
-// Boost Serialization Helper
-
-template <typename T>
-bool serialize(const T& data, const std::string& filename) {
-	std::ofstream ofs(filename.c_str(), std::ios::out);
-	if (!ofs.is_open())
-		return false;
-	{
-		boost::archive::binary_oarchive oa(ofs);
-		oa << data;
-	}
-	ofs.close();
-	return true;
-}
-
-template <typename T>
-bool deserialize(T& data, const std::string& filename) {
-	std::ifstream ifs(filename.c_str(), std::ios::in);
-	if (!ifs.is_open())
-		return false;
-	{
-		boost::archive::binary_iarchive ia(ifs);
-		ia >> data;
-	}
-	ifs.close();
-	return true;
-}
-
-struct PoseData {
-	int poseIndex = -1;
-	double vals[kNumPoseSamples][kNumGloveSensors] = { {0} };
-};
 
 class UpdateVizCtx {
 public:
@@ -76,7 +37,7 @@ public:
 	MatrixXd& poses;
 };
 
-std::vector<std::string> getNextLineAndSplitIntoTokens(std::istream& str)
+std::vector<std::string> get_next_line_and_split_into_tokens(std::istream& str)
 {
 	std::vector<std::string>   result;
 	std::string                line;
@@ -112,7 +73,7 @@ bool load_poses(const string& filename, MatrixXd& poses_m, vector<string>& joint
 	vector<vector<double>> joint_angles;
 
 	//Gather joint angles for given joint, across all poses
-	while ( line_tokens = getNextLineAndSplitIntoTokens(ifs), line_tokens.size() > 1 )
+	while ( line_tokens = get_next_line_and_split_into_tokens(ifs), line_tokens.size() > 1 )
 	{
 		vector<double> angles;
 		for (auto token : line_tokens)
@@ -132,9 +93,7 @@ bool load_poses(const string& filename, MatrixXd& poses_m, vector<string>& joint
 
 	poses_m = MatrixXd::Zero(joint_angles[0].size(), joint_angles.size());
 
-
 	//Convert to vector of hand poses (all row vectors become column vectors)
-	//vector<vector<double>> poses(joint_angles[0].size(), vector<double>(joint_angles.size()));
 	poses.clear();
 	poses.resize(joint_angles[0].size(), vector<double>(joint_angles.size()));
 
@@ -175,11 +134,6 @@ void update_viz(double *time, double *qpos, double *qvel, int nq, int nv, void* 
 	if (UpdateVizCtx::VizStates::kVizGloveInput == viz_ctx->state)
 	{
 		cGlove_getData(qpos, nq);
-		for (int i = 0; i < nq; i++)
-		{
-			cout << qpos[i] << endl;
-		}
-		cout << endl;
 	}
 }
 
@@ -217,11 +171,6 @@ MatrixXd get_glove_ranges()
 
 	}
 	cout << "Finished capturing normalization data" << endl;
-
-
-	//TODO: There needs to be some debug printing functionality
-	cout << "The ranges are:" << endl;
-	cout << raw_ranges;
 	
 	return raw_ranges;
 }
@@ -324,9 +273,10 @@ void store_csv(const std::string& name, MatrixXd matrix)
 
 MatrixXd compute_calibration(const MatrixXd& true_values_n, const MatrixXd& glove_values_n)
 {
-	// Following are the mappings for teh Adroit hand
+	// Following are the mappings for the Adroit hand
 	// The mappings came from matlab, and thus the indices are off by 1.
-	// Just an FYI
+	// Just FYI
+
 	// How the raw signals from the cyberglove map into the fingers
 	std::vector<std::vector<int>> map_raw =
 	{ 
@@ -361,9 +311,6 @@ MatrixXd compute_calibration(const MatrixXd& true_values_n, const MatrixXd& glov
 		auto map_raw_f = map_raw[i];
 		auto map_cal_f = map_cal[i];
 
-		// calibration(map_cal_F, [map_raw_F(n_raw + 1)]) = trueNValue(map_cal_F, :) / ...
-		//	[gloveNSamps(map_raw_F, :); ones(1, size(gloveNSamps, 2))];
-
 		MatrixXd denom = MatrixXd::Zero(map_raw_f.size() + 1, glove_values_n.cols());
 		denom.bottomRows(1) = MatrixXd::Ones(1, glove_values_n.cols());
 		for (int i = 0; i < map_raw_f.size(); i++)
@@ -378,7 +325,7 @@ MatrixXd compute_calibration(const MatrixXd& true_values_n, const MatrixXd& glov
 		}
 
 		// We're solving for Xa=b, as opposed to the usual aX=b here
-	   // xA = B: A ^ T x^T = B ^ T and you have the form you want.
+	    // xA = B: A ^ T x^T = B ^ T and you have the form you want.
 		MatrixXd sol = (denom.transpose()).colPivHouseholderQr().solve(numer.transpose()).transpose();
 
 		eigen_matrix_to_matlab(numer, "numer", "numer.m");
@@ -433,15 +380,29 @@ MatrixXd normalize_samples(const MatrixXd& samples, const MatrixXd& ranges)
 }
 
 //Performs shift and scale operation
-//b1 + (s - a1)*(b2 - b1) / (a2 - a1)
 double remap(double ori_val, double ori_min, double ori_max, double new_min, double new_max)
 {
-	return new_min + (ori_val - ori_min)*(new_max - new_min) / (ori_max - ori_min);
+	double ori_abs = ori_val - ori_min;
+	double ori_max_abs = ori_max - ori_min;
+
+	double normal = ori_abs / ori_max_abs;
+
+	double new_max_abs = new_max - new_min;
+	double new_abs = new_max_abs * normal;
+
+	double new_val = new_abs + new_min;
+
+	return new_val;
 }
 
 // Pose space to muJoCo joint space:
 //		Poses in the input file have a range from -1 to 1.
 //		We want to map these ranges from jmin to jmax
+//		Note, it's more complicated than it seems, because we
+//      want zero values to remain the same. Check out the following
+//      graphic:
+//					-1-----0-----1     from this
+//                jmin-----0-----jmax  to this
 MatrixXd p2j(const MatrixXd& poses, const MatrixXd& mj_ranges)
 {
 	MatrixXd new_poses(poses.rows(), poses.cols());
@@ -453,7 +414,15 @@ MatrixXd p2j(const MatrixXd& poses, const MatrixXd& mj_ranges)
 			double joint_min = mj_ranges(col, 0);
 			double joint_max = mj_ranges(col, 1);
 
-			new_poses(row, col) = remap(poses(row, col), -1, 1, joint_min, joint_max);
+			if (poses(row, col) >= 0)
+			{
+				new_poses(row, col) = remap(poses(row, col), 0, 1, 0, joint_max);
+			}
+			else
+			{
+				new_poses(row, col) = remap(poses(row, col), -1, 0, joint_min, 0);
+			}
+			//new_poses(row, col) = remap(poses(row, col), -1, 1, joint_min, joint_max);
 		}
 	}
 	return new_poses;
@@ -461,10 +430,10 @@ MatrixXd p2j(const MatrixXd& poses, const MatrixXd& mj_ranges)
 
 int main(int argc, char** argv)
 {
-	bool viz_glove_input_only = false;
+	bool viz_glove_input_only = true;
 	bool get_glove_vals_from_csv = false;
 	bool store_glove_vals_to_csv = false;
-	bool use_default_calib = true;
+	bool use_default_calib = false;
 
 	string poses_csv("C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\bin\\Adroitcalib_actuatorPoses.csv");
 
@@ -529,8 +498,6 @@ int main(int argc, char** argv)
 	viz_ctx.state = UpdateVizCtx::kVizPose;
 	MatrixXd glove_ranges = get_glove_ranges();
 
-	cout << "INITIAL GLOVE RANGES:" << endl << glove_ranges << endl;
-
 	MatrixXd true_ranges(m->nu, 2);
 	for (size_t i = 0; i < m->nu; i++)
 	{
@@ -539,33 +506,14 @@ int main(int argc, char** argv)
 	}
 	eigen_matrix_to_matlab(true_ranges, "true_ranges", "true_ranges.m");
 
-	cout << "TRUE RANGES:" << endl << true_ranges << endl;
-
-	// Clamp the poses to the ctrl ranges
-	//cout << "Poses before" << endl << poses << endl;
-	//for (int row = 0; row < poses.rows(); row++)
-	//{
-	//	for (int col = 0; col < poses.cols(); col++)
-	//	{
-	//		double rmin = true_ranges(col, 0);
-	//		double rmax = true_ranges(col, 1);
-	//		poses(row,col) = (poses(row, col) < rmin)?rmin:poses(row,col);
-	//		poses(row, col) = (poses(row, col) > rmax) ? rmax : poses(row, col);
-	//	}
-	//}
-	//cout << "Poses after" << endl << poses << endl;
-
-	// Remap the poses from their prior range to the normalized range.
-	cout << "Poses before" << endl << poses << endl;
+	// Remap the poses from their original space to joint space
 	poses = p2j(poses, true_ranges);
-	cout << "Poses after" << endl << poses << endl;
 
 	// Generate true data vectors using the calibratration pose matrix
 	MatrixXd true_values = gen_true_values_from_poses(poses);
 	eigen_matrix_to_matlab(true_values, "true_values", "true_values.m");
 
 	// Normalize the true values
-	//val = (val - min)/(max-min)
 	MatrixXd true_values_n(true_values.rows(), true_values.cols());
 	true_values_n = normalize_samples(true_values, true_ranges);
 	eigen_matrix_to_matlab(true_values_n, "true_values_n", "true_values_n.m");
@@ -593,7 +541,6 @@ int main(int argc, char** argv)
 
 	eigen_matrix_to_matlab(glove_values, "glove_values", "glove_values.m");
 	eigen_matrix_to_matlab(glove_ranges, "glove_ranges", "glove_ranges.m");
-	cout << "UPDATED GLOVE RANGES" << endl << glove_ranges;
 
 	//Normalized the glove samples
 	MatrixXd glove_values_n(glove_values.rows(), glove_values.cols());
@@ -604,13 +551,8 @@ int main(int argc, char** argv)
 	MatrixXd calibration = compute_calibration(true_values_n, glove_values_n);
 	eigen_matrix_to_matlab(calibration, "calibration", "calibration.m");
 
-	cout << "calibration" << endl << calibration << endl;
-
+	cout << "Saving caibration" << endl;
 	save_calibration("output", glove_ranges, true_ranges, calibration);
-
-	// Get up, do a little dance and then close
-	while(true)
-		Sleep(5000);
 
 	// Close the viz, time to go home.
 	viz_close();

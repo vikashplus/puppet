@@ -1,6 +1,3 @@
 [submodule "cyberglove_calibration/eigen-git-mirror"]
 	path = cyberglove_calibration/eigen-git-mirror
 	url = https://github.com/eigenteam/eigen-git-mirror.git
-[submodule "cyberglove_calibration/boost"]
-	path = cyberglove_calibration/boost
-	url = https://github.com/boostorg/boost.git

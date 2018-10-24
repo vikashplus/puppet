@@ -1,5 +1,7 @@
 run("true_values_n.m");
 run("glove_values_n.m");
+run("true_ranges.m");
+run("glove_ranges.m");
 
 trueNValue = true_values_n;
 gloveNSamps = glove_samples_n;
@@ -28,3 +30,7 @@ for i=1:length(map_raw)
     calibration_octave(map_cal_F, [map_raw_F (n_raw+1)]) = trueNValue(map_cal_F,:)/...
         [gloveNSamps(map_raw_F,:); ones(1, size(gloveNSamps,2))];
 end
+
+dlmwrite('octave_output.handRange', true_ranges', 'delimiter', '\t','precision', '%1.5f');
+dlmwrite('octave_output.userRange', glove_ranges', 'delimiter', '\t','precision', '%1.5f');
+dlmwrite('octave_output.calib', calibration_octave, 'delimiter', '\t','precision', '%1.5f');

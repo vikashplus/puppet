@@ -84,7 +84,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)\..\bin\</OutDir>
-    <IncludePath>$(MUJOCOPATH)\mjpro150\include;..\..\cyberglove\utils;..\..\cyberglove\source;..\eigen-git-mirror\;$(IncludePath)</IncludePath>
+    <IncludePath>$(MUJOCOPATH)\mjpro150\include;..\..\cyberglove\utils;..\..\cyberglove\source;..\external_libs\eigen\;$(IncludePath)</IncludePath>
     <LibraryPath>$(MUJOCOPATH)\mjpro150\bin;$(LibraryPath)</LibraryPath>
     <SourcePath>..\source;..\..\cyberglove\utils;..\..\cyberglove\source;$(SourcePath)</SourcePath>
   </PropertyGroup>

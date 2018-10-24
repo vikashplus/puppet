@@ -624,13 +624,13 @@ void cGlove_getData(cgNum *buff, const int n_buff)
 // get most recent raw cgdata.
 void cGlove_getRawData(cgNum *buff, const int n_buff)
 {
-	if (n_buff < option.calibSenor_n)
+	if (n_buff < option.rawSenor_n)
 	{
-		printf("Warning:: Buffer too small to update. Minimum size should be %d", option.calibSenor_n);
+		printf("Warning:: Buffer too small to update. Minimum size should be %d", option.rawSenor_n);
 		return;
 	}
 	cgdata.cgGlove.lock();
-	memcpy(buff, cgdata.rawSample, option.calibSenor_n * sizeof(cgNum));
+	memcpy(buff, cgdata.rawSample, option.rawSenor_n * sizeof(cgNum));
 	cgdata.cgGlove.unlock();
 }
 

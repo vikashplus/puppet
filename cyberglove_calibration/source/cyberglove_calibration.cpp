@@ -17,6 +17,7 @@
 #include "cxxopts.hpp"
 
 #include "cyberGlove_utils.h"
+#include "CyberGlove.h"
 #include "mujoco.h"
 #include "viz.h"
 
@@ -27,10 +28,11 @@ using Eigen::MatrixXd;
 const int kNumGloveSensors = 22;
 const size_t kNumPoseSamples = 100;
  
+CyberGlove* cg = nullptr;
 
 class UpdateVizCtx {
 public:
-	UpdateVizCtx(MatrixXd& poses) : poses(poses)  {};
+	UpdateVizCtx(MatrixXd* poses) : poses(poses)  {};
 
 	enum VizStates {
 		kVizPose,
@@ -38,7 +40,7 @@ public:
 	};
 	VizStates state = kVizPose;
 	size_t pose_idx;
-	MatrixXd& poses;
+	MatrixXd* poses = nullptr;
 };
 
 std::vector<std::string> get_next_line_and_split_into_tokens(std::istream& str)
@@ -130,8 +132,8 @@ void update_viz(double *time, double *qpos, double *qvel, int nq, int nv, void* 
 	//Visualize a pose
 	if (UpdateVizCtx::VizStates::kVizPose == viz_ctx->state && -1 != viz_ctx->pose_idx)
 	{
-		for (int i = 0; i < viz_ctx->poses.cols(); i++)
-			qpos[i] = viz_ctx->poses(viz_ctx->pose_idx, i);
+		for (int i = 0; i < viz_ctx->poses->cols(); i++)
+			qpos[i] = (*viz_ctx->poses)(viz_ctx->pose_idx, i);
 	}
 
 	// Visualize glove data
@@ -143,14 +145,14 @@ void update_viz(double *time, double *qpos, double *qvel, int nq, int nv, void* 
 
 MatrixXd get_glove_ranges()
 {
-	const size_t num_seconds = 10;
+	const size_t num_seconds = 20;
 
 	MatrixXd raw_ranges(kNumGloveSensors, 2);
 	raw_ranges.col(0) = MatrixXd::Constant(raw_ranges.rows(), 1, 1000);
 	raw_ranges.col(1) = MatrixXd::Constant(raw_ranges.rows(), 1, -1000);
 
 	cout << "Getting normalization data." << endl;
-	cout << "Please explore joint limits for 10 seconds." << endl;
+	cout << "Please explore joint limits for 20 seconds." << endl;
 
 	auto stop_time = chrono::system_clock::now() + chrono::seconds(num_seconds);
 
@@ -158,11 +160,17 @@ MatrixXd get_glove_ranges()
 	// TODO: Make the cyberglove return failure if there's been no update.
 	Sleep(1000);
 
-	//Capture min values and max values for each sensor for 10 seconds
+	//Capture min values and max values for each sensor for 20 seconds
 	double glove_samples[kNumGloveSensors] = { 0 };
 	while (chrono::system_clock::now() < stop_time)
 	{
-		cGlove_getRawData(glove_samples, kNumGloveSensors);
+		//cGlove_getRawData(glove_samples, kNumGloveSensors);
+		unsigned int samples[kNumGloveSensors];
+		cg->GetSample(samples, kNumGloveSensors, NULL);
+		for (int i = 0; i < kNumGloveSensors; i++)
+			glove_samples[i] = samples[i];
+
+		Sleep(20);
 
 		for (size_t i = 0; i < kNumGloveSensors; i++)
 		{
@@ -201,7 +209,13 @@ MatrixXd capture_glove_data(UpdateVizCtx& ctx, const MatrixXd& poses, MatrixXd& 
 
 			//vector<double> glove_raw(kNumGloveSensors);
 			Eigen::VectorXd glove_raw(kNumGloveSensors);
-			cGlove_getRawData(glove_raw.data(), kNumGloveSensors);
+
+			//cGlove_getRawData(glove_raw.data(), kNumGloveSensors);
+			unsigned int samples[kNumGloveSensors];
+			cg->GetSample(samples, kNumGloveSensors, NULL);
+			for (int i = 0; i < kNumGloveSensors; i++)
+				glove_raw(i) = samples[i];
+
 			glove_samples.col(i_pose*kNumPoseSamples + j_sample) = glove_raw; 
 
 			//Continue collecting ranges for normalization
@@ -442,11 +456,54 @@ int do_calibration(const cxxopts::ParseResult& opts)
 	bool viz_glove_input_only = opts["viz_only"].as<bool>();
 	string mujoco_xml_path = opts["xml"].as<string>();
 
+	string mj_license_path = mujoco_path + "\\mjkey.txt";
+
 	// Options for debugging
 	bool get_glove_vals_from_csv = false;
 	bool store_glove_vals_to_csv = false;
 	bool use_default_calib = false;
 	bool write_to_m_files = false;
+
+	//Register the udpate callback function
+	UpdateVizCtx viz_ctx(nullptr);
+	viz_register_update_cb(update_viz, (void*)&viz_ctx);
+
+	if (viz_glove_input_only)
+	{
+		cgOption* cg_opt = &option;
+		cg_opt->glove_port = const_cast<char *>(com_port.c_str());
+		cg_opt->calibSenor_n = 24;
+		cg_opt->calibFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\bin\\user.calib";
+		cg_opt->userRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\bin\\user.userRange";
+		cg_opt->handRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\bin\\user.handRange";
+
+		cGlove_init(cg_opt);
+
+		//Viz glove input only
+		if (viz_glove_input_only)
+		{
+			// Fire up the viz
+			cout << "Staring Viz" << endl;
+
+			viz_ctx.state = UpdateVizCtx::kVizGloveInput;
+
+			viz_init(mujoco_xml_path.c_str(), mj_license_path.c_str());
+
+			cout << "Pres Space to Exit";
+			char c = 0;
+			while (c != ' ')
+				c = _getch();
+
+			// Close the viz
+			viz_close();
+
+			return 0;
+		}
+	}
+	else
+	{
+		cg = new CyberGlove(com_port.c_str(), 115200);
+	}
 
 	MatrixXd poses;
 	vector<string> joint_map;
@@ -460,54 +517,18 @@ int do_calibration(const cxxopts::ParseResult& opts)
 		cout << "Loaded " << poses.rows() << " poses, for " << joint_map.size() << " joints." << endl;
 	}
 
-	if(write_to_m_files)
+	if (write_to_m_files)
 		eigen_matrix_to_matlab(poses, "poses", "poses.m");
 
-	//CyberGlove config and init
-	//Set default options
-	cgOption* cg_opt = &option;
-	cg_opt->glove_port = const_cast<char *>(com_port.c_str());
-	cg_opt->calibSenor_n = 24;
-
-	if (use_default_calib)
-	{
-		cg_opt->calibFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove\\calib\\cGlove_Adroit_actuator_default.calib";
-		cg_opt->userRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove\\calib\\cGlove_Adroit_actuator_default.userRange";
-		cg_opt->handRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove\\calib\\cGlove_Adroit_actuator_default.handRange";
-	}
-	else
-	{
-		cg_opt->calibFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\build\\new_calib\\output.calib";
-		cg_opt->userRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\build\\new_calib\\output.userRange";
-		cg_opt->handRangeFile = "C:\\Users\\adept\\Documents\\teleOp\\cyberglove_calibration\\build\\new_calib\\output.handRange";
-	}
-
-	cGlove_init(cg_opt);
-
-	//Register the udpate callback function
-	UpdateVizCtx viz_ctx(poses);
-	viz_ctx.pose_idx = -1;
-	viz_register_update_cb(update_viz, (void*)&viz_ctx);
-
-	// Fire up the viz, movie time
-	printf("Staring Viz\n");
-
-	//MuJoCo config
-	string mj_license_path = mujoco_path + "\\mjkey.txt";
-	viz_init(mujoco_xml_path.c_str(), mj_license_path.c_str());
-
-	//Viz glove input only
-	if (viz_glove_input_only)
-	{
-		viz_ctx.state = UpdateVizCtx::kVizGloveInput;
-		while (true)
-			Sleep(5000);
-		return 0;
-	}
-
 	// Capture sensor value ranges from the glove
-	viz_ctx.state = UpdateVizCtx::kVizPose;
 	MatrixXd glove_ranges = get_glove_ranges();
+
+	// Fire up the Viz
+	cout << "Starting Viz" << endl;
+	viz_ctx.poses = &poses;
+	viz_ctx.pose_idx = -1;
+	viz_ctx.state = UpdateVizCtx::kVizPose;
+	viz_init(mujoco_xml_path.c_str(), mj_license_path.c_str());
 
 	MatrixXd true_ranges(m->nu, 2);
 	for (size_t i = 0; i < m->nu; i++)
@@ -577,16 +598,21 @@ int do_calibration(const cxxopts::ParseResult& opts)
 	cout << "Saving caibration" << endl;
 	save_calibration(prefix, glove_ranges, true_ranges, calibration);
 
-	// Close the viz, time to go home.
 	viz_close();
+
+	return 0;
 }
 
 int main(int argc, char** argv)
 {
 	cxxopts::Options options(argv[0], " - calibration Utility for CyberGlove III");
 
+	char cwd[MAX_PATH];
+	GetModuleFileName(NULL, cwd, MAX_PATH);
+
 	options.add_options()
 		("help", "Print help")
+		("c,calfile_path", "Path to the directory containing calibration files", cxxopts::value<string>()->default_value(cwd))
 		("mj_path", "MUJOCO_PATH", cxxopts::value<string>()->default_value(getenv("MUJOCOPATH")))
 		("pose_file", "Pose file (CSV)", cxxopts::value<string>()->default_value("Adroitcalib_actuatorPoses.csv"))
 		("p,port", "Serial port (eg. \"COM3\")", cxxopts::value<string>()->default_value("COM3"))
@@ -612,10 +638,45 @@ int main(int argc, char** argv)
 	{
 		cout << "No serial port provided, assuming: " << result["port"].as<string>() << endl;
 	}
+	
+	DWORD attr;
 
-	if (!result.count("xml"))
+	attr = GetFileAttributes(result["xml"].as<string>().c_str());
+	if (INVALID_FILE_ATTRIBUTES == attr && GetLastError() == ERROR_FILE_NOT_FOUND)
 	{
-		cout << "No MuJoCo model XML provided, assuming: " << result["xml"].as<string>() << endl;
+		cout << "Pose MuJoCo XML file not found: " << result["xml"].as<string>() << endl;
+		return 1;
+	}
+
+	attr = GetFileAttributes(result["pose_file"].as<string>().c_str());
+	if (INVALID_FILE_ATTRIBUTES == attr && GetLastError() == ERROR_FILE_NOT_FOUND)
+	{
+		cout << "Pose file not found: " << result["pose_file"].as<string>() << endl;
+		return 1;
+	}
+
+	string user_range_file = result["calfile_path"].as<string>() + "/" + result["prefix"].as<string>() + ".userRange";
+	attr = GetFileAttributes(user_range_file.c_str());
+	if (INVALID_FILE_ATTRIBUTES == attr && GetLastError() == ERROR_FILE_NOT_FOUND)
+	{
+		cout << "User Range calibration file not found: " << user_range_file << endl;
+		return 1;
+	}
+
+	string hand_range_file = result["calfile_path"].as<string>() + "/" + result["prefix"].as<string>() + ".handRange";
+	attr = GetFileAttributes(hand_range_file.c_str());
+	if (INVALID_FILE_ATTRIBUTES == attr && GetLastError() == ERROR_FILE_NOT_FOUND)
+	{
+		cout << "Hand Range calibration file not found: " << hand_range_file << endl;
+		return 1;
+	}
+
+	string calibration_file = result["calfile_path"].as<string>() + "/" + result["prefix"].as<string>() + ".calib";
+	attr = GetFileAttributes(calibration_file.c_str());
+	if (INVALID_FILE_ATTRIBUTES == attr && GetLastError() == ERROR_FILE_NOT_FOUND)
+	{
+		cout << "Calibration file not found: " << calibration_file << endl;
+		return 1;
 	}
 
 	return do_calibration(result);

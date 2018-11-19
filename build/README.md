@@ -1,6 +1,9 @@
-# Vive C driver
+# PUPPET installation
 
-## Build 
+## Requirements
+Vive headset and a minimum of one active controller. Optional equipments include additional vive controllers, vive trackers, and cyberglove.
+
+## Build and install
 1. Add environment variable ["MUJOCOPATH"](..//gallery//adding_system_variables.jpg) to the `System Properties`
 2. Open `x64 Native Tools Command Prompt` from visual studios.
 3. Type `SET MUJOCOPATH` to verify that the path is correctly set.
@@ -20,8 +23,6 @@ Navigate to `build/` folder. Type `puppet.exe` or `playlog.exe` (without any arg
 ffmpeg -f rawvideo -pixel_format rgb24 -video_size 800x800 -framerate 60 -i rgb.out -vf "vflip" video.mp4
 ```
 
-## Requirements
-Vive headset and a minimum of one active controller.
 
 ## Bindings
 ### Controller

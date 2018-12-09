@@ -428,8 +428,8 @@ void v_initPre(void)
             }
 
             // make sure all ids were found
-            if( ctl[n].idtrigger<0 || ctl[n].idpad<0 )
-                mju_error("Trigger or Pad axis not found");
+           /* if( ctl[n].idtrigger<0 || ctl[n].idpad<0 )
+                mju_error("Trigger or Pad axis not found");*/
 
             // set colors
             if( n==0 )
@@ -794,15 +794,15 @@ void v_update(void)
                 mju_copy(ctl[n].targetquat, ctl[n].quat, 4);
             }
 
-            // render controller
+			// render controller
             if( scn.ngeom<scn.maxgeom )
             {
                 float sclrgb = ctl[n].hold[vBUTTON_TRIGGER] ? 1 : 0.5f;
                 g = scn.geoms + scn.ngeom;
                 v_defaultGeom(g);
-                g->size[0] = 0.03f / scn.scale;
-                g->size[1] = 0.02f / scn.scale;
-                g->size[2] = 0.04f / scn.scale;
+                g->size[0] = .5*0.03f / scn.scale;
+                g->size[1] = .5*0.02f / scn.scale;
+                g->size[2] = .5*0.04f / scn.scale;
                 g->rgba[0] = ctl[n].rgba[0] * sclrgb;
                 g->rgba[1] = ctl[n].rgba[1] * sclrgb;
                 g->rgba[2] = ctl[n].rgba[2] * sclrgb;
@@ -1157,6 +1157,16 @@ void user_perturbations(int ctl_n)
 				(m->actuator_ctrlrange[2 * lGripper + 1] - m->actuator_ctrlrange[2 * lGripper]);
 		}
 
+		// Control gripper if multitask
+		rGripper = mj_name2id(m, mjOBJ_ACTUATOR, "grasp");
+		// engage only if both are found
+		if(rGripper!=-1)
+		{
+			const double scale = 1.0;
+			d->ctrl[rGripper] = m->actuator_ctrlrange[2 * rGripper] + scale*(ctl[ctl_n].triggerpos)*
+				(m->actuator_ctrlrange[2 * rGripper + 1] - m->actuator_ctrlrange[2 * rGripper]);
+		}
+
 	}
 }
 
@@ -1284,6 +1294,20 @@ int main(int argc, char** argv)
             if( ctl[n].valid && ctl[n].tool==vTOOL_PULL && 
                 ctl[n].body>0 && (ctl[n].hold[vBUTTON_TRIGGER]||trackMocap[n]==true))
             {
+				// project to XY plane
+				ctl[n].targetpos[1] = 0.0;
+				
+				/* Some issues with angle conventions
+				double quat[4];
+				double vel[3];
+				mju_copy(quat, ctl[n].targetquat, 4);
+				mju_quat2Vel(vel, quat, 1);
+				double angle = mju_normalize3(vel);
+				vel[0] = vel[2] = 0.0;
+				mju_normalize3(vel);
+				mju_axisAngle2Quat(quat, vel, angle);
+				mju_copy(ctl[n].targetquat, quat, 4);*/
+
                 // perpare mjvPerturb object
                 pert.active = mjPERT_TRANSLATE | mjPERT_ROTATE;
                 pert.select = ctl[n].body;
@@ -1293,6 +1317,17 @@ int main(int argc, char** argv)
                 // apply
                 mjv_applyPerturbPose(m, d, &pert, 0);
                 mjv_applyPerturbForce(m, d, &pert);
+
+				// project to XY plane
+				double quat[4];
+				double vel[3];
+				mju_copy(quat, d->mocap_quat, 4);
+				mju_quat2Vel(vel, quat, 1);
+				double angle = mju_normalize3(vel);
+				vel[0] = vel[2] = 0.0;
+				mju_normalize3(vel);
+				mju_axisAngle2Quat(quat, vel, angle);
+				mju_copy(d->mocap_quat, quat, 4);
 
 				// Apply user custom perturbations
 				user_perturbations(n);

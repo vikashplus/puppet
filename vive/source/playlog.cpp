@@ -285,7 +285,7 @@ void initMuJoCo(const char* filename, const char* logfile)
     mj_forward(m, d);
 
     // initialize MuJoCo visualization
-    mjv_makeScene(&scn, 1000);
+    mjv_makeScene(m, &scn, 1000);
     mjv_defaultCamera(&cam);
     mjv_defaultOption(&vopt);
     mjr_defaultContext(&con);
@@ -798,12 +798,13 @@ void render(GLFWwindow* window)
     {
         // find selected model geom and body
         mjtNum pos[3];
-        int selgeom = mjv_select(m, d, &vopt, 
+		int selgeom;
+        int selbody = mjv_select(m, d, &vopt, 
                                  (mjtNum)R.width/(mjtNum)R.height, 
                                  (mjtNum)lastx/(mjtNum)R.width, 
                                  (mjtNum)(R.height-lasty)/(mjtNum)R.height, 
-                                 &scn, pos);
-        int selbody = (selgeom>=0 ? m->geom_bodyid[selgeom] : 0);
+                                 &scn, pos, &selgeom, NULL);
+        //int selbody = (selgeom>=0 ? m->geom_bodyid[selgeom] : 0);
 
         // set lookat point
         if( selgeom>=0 )

@@ -105,7 +105,7 @@ int initMuJoCo(const char* filename, int width2, int height)
     m->vis.quality.offsamples = 8;
 
     // initialize MuJoCo visualization
-    mjv_makeScene(&scn, 1000);
+    mjv_makeScene(m, &scn, 1000);
     mjv_defaultOption(&vopt);
     mjv_defaultPerturb(&pert);
     mjr_defaultContext(&con);

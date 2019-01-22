@@ -35,12 +35,22 @@ mjvOption vopt;
 mjvPerturb pert;
 mjrContext con;
 GLFWwindow* window;
-double frametime = 0;
 bool trackMocap[2] = {false, false};
 int virtual_controllerButton = -1; // use keyboard te emulate controller keys
 bool saveLogs = false;
+bool reset_request = false;
 
 //-------------------------------- MuJoCo functions -------------------------------------
+
+// reset scene
+void resetMuJoCo()
+{
+    if(m->nkey>0)
+        mj_resetDataKeyframe(m, d, 0); // defaults to first key, if found
+    else
+        mj_resetData(m, d);
+    mj_forward(m, d);
+}
 
 // load model, init simulation and rendering; return 0 if error, 1 if ok
 int initMuJoCo(const char* filename, int width2, int height)
@@ -84,7 +94,7 @@ int initMuJoCo(const char* filename, int width2, int height)
     if( strlen(filename)>4 && !strcmp(filename+strlen(filename)-4, ".mjb") )
 		m = mj_loadModel(filename, NULL);
     else
-        m = mj_loadXML(filename, 0, error, 1000);
+        m = mj_loadXML(filename, NULL, error, 1000);
     if( !m )
     {
         printf("%s\n", error);
@@ -93,11 +103,7 @@ int initMuJoCo(const char* filename, int width2, int height)
 
     // make data, run one computation to initialize all fields
     d = mj_makeData(m);
-	if(m->nkey>0)
-		mj_resetDataKeyframe(m, d, 0); // defaults to first key, if found
-	else
-		mj_resetData(m, d);
-    mj_forward(m, d);
+	resetMuJoCo();
 
     // set offscreen buffer size to match HMD
     m->vis.global.offwidth = width2;
@@ -135,7 +141,6 @@ void closeMuJoCo(void)
     mjv_freeScene(&scn);
     mj_deactivate();
 }
-
 
 // keyboard
 void keyboard(GLFWwindow* window, int key, int scancode, int act, int mods)
@@ -179,12 +184,7 @@ void keyboard(GLFWwindow* window, int key, int scancode, int act, int mods)
 		break;
 
     case GLFW_KEY_BACKSPACE:
-		if(m->nkey>0)
-			 mj_resetDataKeyframe(m, d, 0); // defaults to first key, if found
-		else
-			mj_resetData(m, d);
-        mj_forward(m, d);
-        frametime = 0;
+		reset_request = true;
         break;
 
     default:
@@ -431,6 +431,7 @@ void v_initPre(void)
             if( (ctl[n].device==vDEVICE_CONTROLLER) && 
                 (ctl[n].idtrigger<0 || ctl[n].idpad<0) )
                 mju_error("Trigger or Pad axis not found");
+
 
             // set colors
             if( n==0 )
@@ -693,14 +694,7 @@ void v_update(void)
 					// Left button reset the scene
                     if(ctl[n].padpos[0]<-0.5 && abs(ctl[n].padpos[1]<0.5))
                     {
- 
-						if(m->nkey>0)
-                            mj_resetDataKeyframe(m, d, 0); // defaults to first key, if found
-                        else
-                            mj_resetData(m, d);
-                        mj_forward(m, d);
-						trackMocap[0] = false;
-						trackMocap[1] = false;
+						reset_request = true;
 						sprintf(ctl[n].message, "Reset");
 						printf("Reset, trackMocap0: %d, trackMocap0: %d\n", (int)trackMocap[0], (int)trackMocap[1]);
                     }
@@ -1189,6 +1183,80 @@ void closenclear()
 		cGlove_clean(NULL);
 }
 
+
+#include <thread>
+#include <chrono>
+void physics(bool& run)
+{
+    printf("Physics thread started\n");
+    
+    double stepTimeStamp = glfwGetTime();
+    double stepDuration = 0.0;
+    double stepLeft = 0.0;
+    while(run)
+    {   
+        // process reset:: resets the scene and clearns controller states
+        if(reset_request)
+        {
+            resetMuJoCo();
+            trackMocap[0] = false;
+            trackMocap[1] = false;
+            reset_request = false;
+        }
+        
+        // Refresh tracking data respecting skip
+        // user_step+logging+mj_step are outside skip to maintain data/sim resolution.
+        if((int)(float)(d->time/m->opt.timestep)%opt->skip==0)
+        {
+            // begin step
+            stepTimeStamp = glfwGetTime();
+
+            // apply controller perturbations
+            mju_zero(d->xfrc_applied, 6*m->nbody);
+            for( int n=0; n<2; n++ )
+                if( ctl[n].valid && ctl[n].tool==vTOOL_PULL && 
+                    ctl[n].body>0 && (ctl[n].hold[vBUTTON_TRIGGER]||trackMocap[n]==true))
+                {
+                    // perpare mjvPerturb object
+                    pert.active = mjPERT_TRANSLATE | mjPERT_ROTATE;
+                    pert.select = ctl[n].body;
+                    mju_copy3(pert.refpos, ctl[n].targetpos);
+                    mju_copy(pert.refquat, ctl[n].targetquat, 4);
+
+                    // apply
+                    mjv_applyPerturbPose(m, d, &pert, 0);
+                    mjv_applyPerturbForce(m, d, &pert);
+
+                    // Apply user custom perturbations (finger controls)
+                    user_perturbations(n);
+                }
+            
+            // get glove demands
+            if(opt->USEGLOVE)
+                cGlove_getData(d->ctrl, m->nu);
+        }
+
+        // user requests
+        user_step(m,d);
+
+        // Save logs
+        if((strcmp(opt->logFile,"none")!=0)&&(saveLogs))
+            write_logs(m, d, opt->logFile);
+
+        // simulate
+        mj_step(m, d);
+        
+        // real time sync
+        stepDuration = glfwGetTime() - stepTimeStamp;
+        stepLeft = 1000.0*(m->opt.timestep-stepDuration);
+
+        if(stepLeft>=1.0)
+            std::this_thread::sleep_for(std::chrono::milliseconds(int(stepLeft)));
+    }
+    printf("Physics thread exiting\n");
+}
+
+
 // main
 int main(int argc, char** argv)
 {
@@ -1247,81 +1315,45 @@ int main(int argc, char** argv)
 	init_devices();
 	
     // main loop
+    bool run = true;
+    std::thread ph_thread(physics, std::ref(run)); // pass by reference
+
+    double frameduration = 0.0;
     double lasttm = glfwGetTime(), FPS = 90;
-    frametime = d->time;
     while( !glfwWindowShouldClose(window) )
     {
-        // render new frame if it is time, or if simulation was reset
-        if( (d->time-frametime)>1.0/FPS || d->time<frametime )
-        {
-            // create abstract scene
-            mjv_updateScene(m, d, &vopt, NULL, NULL, mjCAT_ALL, &scn);
+        // create abstract scene
+        mjv_updateScene(m, d, &vopt, NULL, NULL, mjCAT_ALL, &scn);
 
-            // update vr poses and controller states
-            v_update();
+        // update vr poses and controller states
+        v_update();
 
-            // render in offscreen buffer
-            mjrRect viewFull = {0, 0, 2*(int)hmd.width, (int)hmd.height};
-            mjr_setBuffer(mjFB_OFFSCREEN, &con);
-            mjr_render(viewFull, &scn, &con);
+        // render in offscreen buffer
+        mjrRect viewFull = {0, 0, 2*(int)hmd.width, (int)hmd.height};
+        mjr_setBuffer(mjFB_OFFSCREEN, &con);
+        mjr_render(viewFull, &scn, &con);
 
-            // show FPS (window only, hmd clips it)
-            FPS = 0.9*FPS + 0.1/(glfwGetTime() - lasttm);
-            lasttm = glfwGetTime();
-            char fpsinfo[20];
-            sprintf(fpsinfo, "FPS %.0f", FPS);
-            mjr_overlay(mjFONT_BIG, mjGRID_BOTTOMLEFT, viewFull, fpsinfo, NULL, &con);
+        // show FPS (window only, hmd clips it)
+        frameduration = glfwGetTime() - lasttm;
+        FPS = 0.9*FPS + 0.1/frameduration;
+        lasttm = glfwGetTime();
 
-            // render to vr and window
-            v_render();
+        // real time sync
+        std::this_thread::sleep_for(std::chrono::milliseconds(int(1000*(1.0/FPS-frameduration))));
 
-            // save simulation time
-            frametime = d->time;  
-        }
+        char fpsinfo[20];
+        sprintf(fpsinfo, "FPS %.0f", FPS);
+        mjr_overlay(mjFONT_BIG, mjGRID_BOTTOMLEFT, viewFull, fpsinfo, NULL, &con);
 
-        // Refresh tracking data respecting skip
-        // user_step+logging+mj_step are outside skip to maintain data/sim resolution.
-        if((int)(float)(d->time/m->opt.timestep)%opt->skip==0)
-        {
-            // apply controller perturbations
-            mju_zero(d->xfrc_applied, 6*m->nbody);
-            for( int n=0; n<2; n++ )
-                if( ctl[n].valid && ctl[n].tool==vTOOL_PULL && 
-                    ctl[n].body>0 && (ctl[n].hold[vBUTTON_TRIGGER]||trackMocap[n]==true))
-                {
-                    // perpare mjvPerturb object
-                    pert.active = mjPERT_TRANSLATE | mjPERT_ROTATE;
-                    pert.select = ctl[n].body;
-                    mju_copy3(pert.refpos, ctl[n].targetpos);
-                    mju_copy(pert.refquat, ctl[n].targetquat, 4);
-
-                    // apply
-                    mjv_applyPerturbPose(m, d, &pert, 0);
-                    mjv_applyPerturbForce(m, d, &pert);
-
-    				// Apply user custom perturbations (finger controls)
-    				user_perturbations(n);
-                }
-    		
-    		// get glove demands
-    		if(opt->USEGLOVE)
-				cGlove_getData(d->ctrl, m->nu);
-        }
-
-		// user requests (skip within user_step is controlled via XML parameters)
-        user_step(m,d);
-
-		// Save logs
-		if((strcmp(opt->logFile,"none")!=0)&&(saveLogs))
-            write_logs(m, d, opt->logFile);
-
-        // simulate
-        mj_step(m, d);
-                
+        // render to vr and window
+        v_render();
 
         // update GUI
         glfwPollEvents();
     }
+    run = false;
+    ph_thread.join();
+    printf("Physics thread exited\n");
 	printf("Main:>\t Done\n");
 
 	closenclear();

@@ -1343,7 +1343,46 @@ int main(int argc, char** argv)
 
         // render to vr and window
         v_render();
+        
+        // Refresh tracking data respecting skip
+        // user_step+logging+mj_step are outside skip to maintain data/sim resolution.
+        if((int)(float)(d->time/m->opt.timestep)%opt->skip==0)
+        {
+            // apply controller perturbations
+            mju_zero(d->xfrc_applied, 6*m->nbody);
+            for( int n=0; n<2; n++ )
+                if( ctl[n].valid && ctl[n].tool==vTOOL_PULL && 
+                    ctl[n].body>0 && (ctl[n].hold[vBUTTON_TRIGGER]||trackMocap[n]==true))
+                {
+                    // perpare mjvPerturb object
+                    pert.active = mjPERT_TRANSLATE | mjPERT_ROTATE;
+                    pert.select = ctl[n].body;
+                    mju_copy3(pert.refpos, ctl[n].targetpos);
+                    mju_copy(pert.refquat, ctl[n].targetquat, 4);
 
+                    // apply
+                    mjv_applyPerturbPose(m, d, &pert, 0);
+                    mjv_applyPerturbForce(m, d, &pert);
+
+    				// Apply user custom perturbations (finger controls)
+    				user_perturbations(n);
+                }
+    		
+    		// get glove demands
+    		if(opt->USEGLOVE)
+				cGlove_getData(d->ctrl, m->nu);
+        }
+
+		// user requests (skip within user_step is controlled via XML parameters)
+        user_step(m,d);
+
+		// Save logs
+		if((strcmp(opt->logFile,"none")!=0)&&(saveLogs))
+            write_logs(m, d, opt->logFile);
+
+        // simulate
+        mj_step(m, d);
+                
         // update GUI
         glfwPollEvents();
     }

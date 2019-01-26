@@ -34,7 +34,7 @@
 
 		// Mujoco
 		char* viz_ip = "128.208.4.243";
-		int skip = 1;		// # steps to skip updates from the glove
+		int skip = 1;		// update teleOP every skip steps(1: updates tracking every mj_step)
 
 		// feedback
 		char* DOChan = "Dev2/port0/line0:7";

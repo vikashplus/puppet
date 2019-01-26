@@ -428,7 +428,8 @@ void v_initPre(void)
             }
 
             // make sure all ids were found
-            if( ctl[n].idtrigger<0 || ctl[n].idpad<0 )
+            if( (ctl[n].device==vDEVICE_CONTROLLER) && 
+                (ctl[n].idtrigger<0 || ctl[n].idpad<0) )
                 mju_error("Trigger or Pad axis not found");
 
             // set colors
@@ -1278,32 +1279,36 @@ int main(int argc, char** argv)
             frametime = d->time;  
         }
 
-        // apply controller perturbations
-        mju_zero(d->xfrc_applied, 6*m->nbody);
-        for( int n=0; n<2; n++ )
-            if( ctl[n].valid && ctl[n].tool==vTOOL_PULL && 
-                ctl[n].body>0 && (ctl[n].hold[vBUTTON_TRIGGER]||trackMocap[n]==true))
-            {
-                // perpare mjvPerturb object
-                pert.active = mjPERT_TRANSLATE | mjPERT_ROTATE;
-                pert.select = ctl[n].body;
-                mju_copy3(pert.refpos, ctl[n].targetpos);
-                mju_copy(pert.refquat, ctl[n].targetquat, 4);
+        // Refresh tracking data respecting skip
+        // user_step+logging+mj_step are outside skip to maintain data/sim resolution.
+        if((int)(float)(d->time/m->opt.timestep)%opt->skip==0)
+        {
+            // apply controller perturbations
+            mju_zero(d->xfrc_applied, 6*m->nbody);
+            for( int n=0; n<2; n++ )
+                if( ctl[n].valid && ctl[n].tool==vTOOL_PULL && 
+                    ctl[n].body>0 && (ctl[n].hold[vBUTTON_TRIGGER]||trackMocap[n]==true))
+                {
+                    // perpare mjvPerturb object
+                    pert.active = mjPERT_TRANSLATE | mjPERT_ROTATE;
+                    pert.select = ctl[n].body;
+                    mju_copy3(pert.refpos, ctl[n].targetpos);
+                    mju_copy(pert.refquat, ctl[n].targetquat, 4);
 
-                // apply
-                mjv_applyPerturbPose(m, d, &pert, 0);
-                mjv_applyPerturbForce(m, d, &pert);
+                    // apply
+                    mjv_applyPerturbPose(m, d, &pert, 0);
+                    mjv_applyPerturbForce(m, d, &pert);
 
-				// Apply user custom perturbations
-				user_perturbations(n);
-            }
-		
-		// get glove demands
-		if(opt->USEGLOVE)
-			if((int)(float)(d->time/m->opt.timestep)%opt->skip==0)
+    				// Apply user custom perturbations (finger controls)
+    				user_perturbations(n);
+                }
+    		
+    		// get glove demands
+    		if(opt->USEGLOVE)
 				cGlove_getData(d->ctrl, m->nu);
+        }
 
-		// user requests
+		// user requests (skip within user_step is controlled via XML parameters)
         user_step(m,d);
 
 		// Save logs

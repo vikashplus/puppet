@@ -1,12 +1,17 @@
+DESC = '''
+Parse mujoco (.mjl) logs\n
+mjl format: http://www.mujoco.org/book/haptix.html#uiRecord
+'''
 import struct
 import numpy as np
 import matplotlib as mpl
 mpl.use('TkAgg')
 import matplotlib.pyplot as plt
+import click
 
-# parse mjrl binary logs into python dictionary
-def parse_mjrl_logs(read_filename, skipamount):
-    with open(read_filename+".log", mode='rb') as file:
+# parse mjl binary logs into python dictionary
+def parse_mjl_logs(read_filename, skipamount):
+    with open(read_filename, mode='rb') as file:
         fileContent = file.read()
     headers = struct.unpack('iiiiiii', fileContent[:28])
     nq = headers[0]
@@ -55,7 +60,7 @@ def parse_mjrl_logs(read_filename, skipamount):
     return data
 
 # visualize parsed logs
-def viz_parsed_mjrl_logs(data):
+def viz_parsed_mjl_logs(data):
     f, axarr = plt.subplots(2, sharex=True)
     axarr[0].plot(data['time'], data['qpos'])
     axarr[0].set_ylabel('qpos')
@@ -63,4 +68,26 @@ def viz_parsed_mjrl_logs(data):
     axarr[1].plot(data['time'], data['ctrl'])
     axarr[1].set_ylabel('ctrl')
     axarr[1].set_xlabel('time')
-    plt.savefig(data['logName']+".png")
+    plt.savefig(data['logName'][:-4]+".png")
+    print(data['logName'][:-4]+".png saved")
+
+
+
+# MAIN =========================================================
+@click.command(help=DESC)
+@click.option('--log', type=str, help='.mjl log to parse', required= True)
+@click.option('--skip', type=int, help='number of frames to skip (1:no skip)', default=1)
+@click.option('--plot', type=bool, help='plot parsed logs', default=False)
+def main(log, skip, plot):
+    print("Loading log file: %s" % log)
+    data = parse_mjl_logs(log, skip)
+    print("file successfully parsed")
+
+
+    if(plot):
+        print("plotting data")
+        viz_parsed_mjl_logs(data)
+
+
+if __name__ == '__main__':
+    main()

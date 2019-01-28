@@ -1190,6 +1190,14 @@ void physics(bool& run)
 {
     printf("Physics thread started\n");
     
+    // pre computations
+    int mount_bid = mj_name2id(m, mjOBJ_BODY, "hand mount");
+    double grav_comp[3];
+    mju_scl3(grav_comp, m->opt.gravity, -1.0*m->body_subtreemass[mount_bid]);
+    double mount_xpos0[3];
+    mju_copy3(mount_xpos0, m->body_pos+3*mount_bid);
+
+
     double stepTimeStamp = glfwGetTime();
     double stepDuration = 0.0;
     double stepLeft = 0.0;
@@ -1231,9 +1239,20 @@ void physics(bool& run)
                     user_perturbations(n);
                 }
             
+            // move mocap to controls (init_pos="0 -.5 0.85")
+            double qb[4] = {1, 0, 0, 0};
+            double *qa = d->mocap_quat;
+            double euler[3];
+            mju_subQuat(euler, qa, qb); // qb*quat(res) = qa
+            mju_sub3(d->ctrl, d->mocap_pos, mount_xpos0);
+            mju_copy3(d->ctrl+3, euler);
+
+            // apply gravity compensation
+            mju_copy3(d->xfrc_applied+mount_bid*6, grav_comp);
+
             // get glove demands
             if(opt->USEGLOVE)
-                cGlove_getData(d->ctrl, m->nu);
+                cGlove_getData(d->ctrl+6, m->nu);
         }
 
         // user requests
@@ -1243,9 +1262,10 @@ void physics(bool& run)
         if((strcmp(opt->logFile,"none")!=0)&&(saveLogs))
             write_logs(m, d, opt->logFile);
 
+        // printf("%f, \n", d->xfrc_applied[1*6+2]);
         // simulate
         mj_step(m, d);
-        
+
         // real time sync
         stepDuration = glfwGetTime() - stepTimeStamp;
         stepLeft = 1000.0*(m->opt.timestep-stepDuration);

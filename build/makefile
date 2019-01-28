@@ -8,7 +8,7 @@ CGLOVE=/I$(GLOVE_PATH)/source $(GLOVE_PATH)/source/CyberGlove.cpp $(GLOVE_PATH)/
 
 all:
 	@echo  Building ==============================
-	cl $(COMMON) ../vive/source/playlog.cpp $(MUJOCO) $(MJVIVE) /Fe../build/playlog
+#	cl $(COMMON) ../vive/source/playlog.cpp $(MUJOCO) $(MJVIVE) /Fe../build/playlog
 	cl $(COMMON) ../vive/source/viveGlove.cpp $(MUJOCO) $(MJVIVE) $(CGLOVE) /Fe../build/puppet
 	@echo  Installing ==============================
 	copy "$(MJ_PATH)\bin\mujoco200.dll" "..\build\mujoco200.dll"

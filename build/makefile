@@ -1,25 +1,36 @@
-MJ_PATH=$(MUJOCOPATH)/mujoco200_win64
-GLOVE_PATH=../cyberglove
+# MJ_PATH = /home/theia/.mujoco/mjpro150
+# GLOVE_PATH = /home/theia/Libraries/puppet/cyberglove
+# MUJOCO = -I$(MJ_PATH)/include -L$(MJ_PATH)/bin $(MJ_PATH)/bin/libglfw.so.3 
+# LDFLAGS = -lGL 
+# MJVIVE = -I../vive/sdk/openVR -I../vive/sdk -DGLEW_STATIC -I../vive/sdk/GL/glew.c -I../vive/sdk/openVR/openvr_capi.h 
+# CGLOVE = -I$(GLOVE_PATH)/source -I$(GLOVE_PATH)/source/CyberGlove.cpp -I$(GLOVE_PATH)/source/CyberGlove_utils.cpp
+# CC = g++
+# CFLAGS  = -g -Wall
 
-COMMON=/O2 /MT /EHsc
-MUJOCO=/I$(MJ_PATH)/include $(MJ_PATH)/bin/mujoco200.lib $(MJ_PATH)/bin/glfw3.lib opengl32.lib
-MJVIVE=/I../vive/sdk/openVR /I../vive/sdk -DGLEW_STATIC ../vive/sdk/GL/glew.c ../vive/sdk/openVR/openvr_api.lib
-CGLOVE=/I$(GLOVE_PATH)/source $(GLOVE_PATH)/source/CyberGlove.cpp $(GLOVE_PATH)/source/CyberGlove_utils.cpp
+# all:	
+# 	@echo Building ==============================
+# 	$(CC) $(CFLAGS) ../vive/source/playlog.cpp $(MUJOCO) $(MJVIVE) $(LDFLAGS) -o ../build/playlog 
+# 	$(CC) $(CFLAGS) ../vive/source/viveGlove.cpp $(MUJOCO) $(MJVIVE) $(GLOVE_PATH) $(LDFLAGS) -o ../build/puppet  
+# 	@echo Installing ==============================
 
-all:
-	@echo  Building ==============================
-	cl $(COMMON) ../vive/source/playlog.cpp $(MUJOCO) $(MJVIVE) /Fe../build/playlog
-	cl $(COMMON) ../vive/source/viveGlove.cpp $(MUJOCO) $(MJVIVE) $(CGLOVE) /Fe../build/puppet
-	@echo  Installing ==============================
-	copy "$(MJ_PATH)\bin\mujoco200.dll" "..\build\mujoco200.dll"
-	copy "$(MJ_PATH)\bin\glfw3.dll" "..\build\glfw3.dll"
-	copy "..\vive\sdk\openVR\openvr_api.dll" "..\build\openvr_api.dll"
-	del *.obj
 
-clean:	
-	@echo  Cleaning ==============================
-	del ..\build\puppet*
-	del ..\build\playlog*
-	del ..\build\mujoco*
-	del ..\build\glfw3.dll
-	del ..\build\openvr_api.dll
+MJ_PATH = /home/theia/.mujoco/mjpro150
+MUJOCO = -I$(MJ_PATH)/include -L$(MJ_PATH)/bin
+LDFLAGS = -lmujoco150 -lGL -lglew
+LIBGLFW = $(MJ_PATH)/bin/libglfw.so.3
+GLOVE_PATH = /home/theia/Libraries/puppet/cyberglove
+CGLOVE = -I$(GLOVE_PATH)/source $(GLOVE_PATH)/source/CyberGlove_utils.cpp
+MJVIVE = -I../vive/sdk/openVR -I../vive/sdk -DGLEW_STATIC ../vive/sdk/GL/glew.c 
+LIBVR = ../vive/sdk/openVR/libopenvr_api.so
+
+CC = g++
+CFLAGS = -Wall -std=c++11
+all:	
+	@echo Building ==============================
+	$(CC) $(CFLAGS) $(MUJOCO) ../vive/source/playlog.cpp $(LDFLAGS) $(LIBGLFW) -o ../build/playlog
+	$(CC) $(CFLAGS) $(MUJOCO) $(MJVIVE) ../vive/source/viveGlove.cpp $(LDFLAGS) $(LIBGLFW) $(LIBVR) -o ../build/puppet
+
+clean:
+	@echo Cleaning ==============================
+	rm ../build/playlog*
+	rm ../build/puppet*

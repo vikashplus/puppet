@@ -3,13 +3,13 @@
 //  Written by Emo Todorov         //
 //  Copyright (C) 2017 Roboti LLC  //
 //---------------------------------//
-
 #include "mujoco.h"
 #include "glfw3.h"
 #include "stdio.h"
 #include <string>
-
-
+#include <stdio.h>
+#include <cstring>
+using namespace std;
 //-------------------------------- global variables -------------------------------------
 
 // model and data
@@ -249,11 +249,12 @@ void initMuJoCo(const char* filename, const char* logfile)
     recsz = 1 + m->nq + m->nv + m->nu + 7*m->nmocap + m->nsensordata + m->nuserdata;
 
     // get remaining file size and number of records (Visual Studio)
-    //  on Posix use feeko, ftello, #define _FILE_OFFSET_BITS 64
-    long long startpos = _ftelli64(fp);
-    _fseeki64(fp, 0, SEEK_END);
-    long long filesz = _ftelli64(fp) - startpos;
-    _fseeki64(fp, startpos, SEEK_SET);
+    //  on Posix use fseeko, ftello, #define _FILE_OFFSET_BITS 64
+     #define _FILE_OFFSET_BITS 64
+    long long startpos = ftello(fp);
+    fseeko(fp, 0, SEEK_END);
+    long long filesz = ftello(fp) - startpos;
+    fseeko(fp, startpos, SEEK_SET);
     numrec = filesz/recsz/sizeof(float);
     if( numrec*recsz*sizeof(float)!=filesz )
         mju_error("Logfile size is not divisible by frame size");

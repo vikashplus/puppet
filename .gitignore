@@ -1,17 +1,1 @@
-MUJOCO_LOG.TXT
-.git
-*.bak
-# visual studioes
-*.user
-.vs
-*.obj
-build/*
-
-# cyberGlove
-cyberglove/bin/*
-cyberglove/calib/*
-
-# vive 
-vive/bin/*
-vive/datalog/*
-*.psd
+*.DS_Store

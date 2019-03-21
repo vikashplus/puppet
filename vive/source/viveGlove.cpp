@@ -1020,7 +1020,7 @@ void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
         char name[100];
         time_t now = time(0);
         strftime(logTimestr, sizeof(name), "%Y_%m_%d_%H_%M_%S", localtime(&now));
-        sprintf(name, "%s_%s.log", filename, logTimestr);
+        sprintf(name, "%s_%s.mjl", filename, logTimestr);
         logfile = fopen(name,"wb");
         if (logfile == NULL)
         {
@@ -1189,7 +1189,8 @@ void closenclear()
 void physics(bool& run)
 {
     printf("Physics thread started\n");
-    
+    bool skipSynced_saveLogs = false;
+
     // pre computations
     int mount_bid = mj_name2id(m, mjOBJ_BODY, "hand mount");
     double grav_comp[3];
@@ -1212,12 +1213,16 @@ void physics(bool& run)
             reset_request = false;
         }
         
+        
         // Refresh tracking data respecting skip
         // user_step+logging+mj_step are outside skip to maintain data/sim resolution.
         if((int)(float)(d->time/m->opt.timestep)%opt->skip==0)
         {
             // begin step
             stepTimeStamp = glfwGetTime();
+
+            // update logging requests 
+            skipSynced_saveLogs = saveLogs;
 
             // apply controller perturbations
             mju_zero(d->xfrc_applied, 6*m->nbody);
@@ -1239,11 +1244,11 @@ void physics(bool& run)
                     user_perturbations(n);
                 }
             
-            // move mocap to controls (init_pos="0 -.5 0.85")
+            // move mocap to controls
             double qb[4] = {1, 0, 0, 0};
             double *qa = d->mocap_quat;
             double euler[3];
-            mju_subQuat(euler, qa, qb); // qb*quat(res) = qa
+            mju_subQuat(euler, qa, qb); // qb*quat(res) = qa (this is not exact but gets the job done, as humans adapt to the errors. What we finally need are the controls so the mocap-ctrls mapping need not to be exact. If we need this to be exact, please refer to the GPS paper and the implementation provided by svet, or quatmat.py)
             mju_sub3(d->ctrl, d->mocap_pos, mount_xpos0);
             mju_copy3(d->ctrl+3, euler);
 
@@ -1259,10 +1264,9 @@ void physics(bool& run)
         user_step(m,d);
 
         // Save logs
-        if((strcmp(opt->logFile,"none")!=0)&&(saveLogs))
+        if((strcmp(opt->logFile,"none")!=0)&&(skipSynced_saveLogs))
             write_logs(m, d, opt->logFile);
 
-        // printf("%f, \n", d->xfrc_applied[1*6+2]);
         // simulate
         mj_step(m, d);
 
@@ -1380,3 +1384,11 @@ int main(int argc, char** argv)
 	Sleep(1000);
     return 1;
 }
+
+
+/*
+changelog
+30Jan'19 - log saving respects the skip. Starts only when skip is triggered.
+30Jan'19 - log extention changes from .log to .mjl
+
+*/

@@ -439,14 +439,14 @@ void v_initPre(void)
                 ctl[n].rgba[0] = 0.8f;
                 ctl[n].rgba[1] = 0.2f;
                 ctl[n].rgba[2] = 0.2f;
-                ctl[n].rgba[3] = 0.6f;
+                ctl[n].rgba[3] = 0.15f;
             }
             else
             {
                 ctl[n].rgba[0] = 0.2f;
                 ctl[n].rgba[1] = 0.8f;
                 ctl[n].rgba[2] = 0.2f;
-                ctl[n].rgba[3] = 0.6f;
+                ctl[n].rgba[3] = 0.15f;
             }
 
             // clear state
@@ -841,7 +841,7 @@ void v_update(void)
                 g->rgba[0] = ctl[n].rgba[0];
                 g->rgba[1] = ctl[n].rgba[1];
                 g->rgba[2] = ctl[n].rgba[2];
-                g->rgba[3] = 1;
+                g->rgba[3] = ctl[n].rgba[3];
 
                 mju_n2f(g->pos, mid, 3);
                 mju_quatZ2Vec(quat, dif);
@@ -1151,7 +1151,6 @@ void user_perturbations(int ctl_n)
 			d->ctrl[lGripper] = m->actuator_ctrlrange[2 * lGripper] + scale*(ctl[ctl_n].triggerpos)*
 				(m->actuator_ctrlrange[2 * lGripper + 1] - m->actuator_ctrlrange[2 * lGripper]);
 		}
-
 	}
 }
 

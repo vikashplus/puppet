@@ -1553,8 +1553,8 @@ void physics(bool& run)
                 }
             
             // get glove demands
-            if(opt->USEGLOVE)
-                cGlove_getData(d->ctrl, m->nu);
+//            if(opt->USEGLOVE)
+//                cGlove_getData(d->ctrl, m->nu);
         }
 
         // user requests

@@ -405,7 +405,7 @@ int initMuJoCo(const char* filename, int width2, int height)
 		printf("WARNING:: Environment variable 'MUJOCOPATH' not found. Defaulting to the local folder\n");
 	else
 		(std::string(mujocoPath));
-	sprintf(licensePath, "%s\\mjkey.txt", mujocoPath);
+	sprintf(licensePath, "%smjkey.txt", mujocoPath);
 
     // activate
 	if(!mj_activate(licensePath))

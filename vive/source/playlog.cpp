@@ -196,7 +196,7 @@ void initMuJoCo(const char* filename, const char* logfile)
 	}
 	else
 		(std::string(mujocoPath));
-	sprintf(licensePath, "%s\\mjkey.txt", mujocoPath);
+	sprintf(licensePath, "%smjkey.txt", mujocoPath);
 
 	if(!mj_activate(licensePath))
 		printf("ERROR:: Failed to activate license\n");

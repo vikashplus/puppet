@@ -44,27 +44,31 @@ static void uniformDist(RealType* data, double min, double max, size_t count)
 // process event. Return true is the event is active
 bool user_event(mjModel *m, mjData *d, int event_id, double* prms)
 {
-    int skip = prms[0];
+    int skip = prms != nullptr ? prms[0] : 0;
     int step_cnt = (int)(d->time / m->opt.timestep);
 
     // process events
     switch (event_id)
     {
     case default_event:
+
         break;
 
     case on_reset:
+
         if (d->time == 0)
             return true;
         break;
 
     case on_step:
+
         if (!skip || (step_cnt%skip == 0))
             return true;
         break;
 
     default:
         // printf("\nWARNING: Unrecognised event: %d", event_id);
+
         return false;
     }
     return false;

@@ -20,8 +20,8 @@
 #include <openvr.h>
 using namespace vr;
 
-#include "cyberGlove_utils.h"	// cyberGlove
-cgOption* opt;					// cyber glove options
+#include "cyberGlove_utils.h"   // cyberGlove
+cgOption* opt;                  // cyber glove options
 
 //-------------------------------- MuJoCo global data -----------------------------------
 
@@ -55,9 +55,9 @@ void resetMuJoCo()
 // load model, init simulation and rendering; return 0 if error, 1 if ok
 int initMuJoCo(const char* filename, int width2, int height)
 {
-	printf("%s\n", filename);
+    printf("%s\n", filename);
     
-	// init GLFW
+    // init GLFW
     if( !glfwInit() )
     {
         printf("Could not initialize GLFW\n");
@@ -77,22 +77,22 @@ int initMuJoCo(const char* filename, int width2, int height)
     if( glewInit()!=GLEW_OK )
         return 0;
 
-	char licensePath[100];
-	char* mujocoPath = getenv("MUJOCOPATH");
+    char licensePath[100];
+    char* mujocoPath = getenv("MUJOCOPATH");
     if(mujocoPath == NULL)
-		printf("WARNING:: Environment variable 'MUJOCOPATH' not found. Defaulting to the local folder\n");
-	else
-		(std::string(mujocoPath));
-	sprintf(licensePath, "%s\\mjkey.txt", mujocoPath);
+        printf("WARNING:: Environment variable 'MUJOCOPATH' not found. Defaulting to the local folder\n");
+    else
+        (std::string(mujocoPath));
+    sprintf(licensePath, "%s\\mjkey.txt", mujocoPath);
 
     // activate
-	if(!mj_activate(licensePath))
-	    return 0;
+    if(!mj_activate(licensePath))
+        return 0;
 
     // load and compile
     char error[1000] = "Could not load binary model";
     if( strlen(filename)>4 && !strcmp(filename+strlen(filename)-4, ".mjb") )
-		m = mj_loadModel(filename, NULL);
+        m = mj_loadModel(filename, NULL);
     else
         m = mj_loadXML(filename, NULL, error, 1000);
     if( !m )
@@ -103,7 +103,7 @@ int initMuJoCo(const char* filename, int width2, int height)
 
     // make data, run one computation to initialize all fields
     d = mj_makeData(m);
-	resetMuJoCo();
+    resetMuJoCo();
 
     // set offscreen buffer size to match HMD
     m->vis.global.offwidth = width2;
@@ -128,7 +128,7 @@ int initMuJoCo(const char* filename, int width2, int height)
     // stereo mode
     scn.stereo = mjSTEREO_SIDEBYSIDE;
     
-	return 1;
+    return 1;
 }
 
 
@@ -175,16 +175,16 @@ void keyboard(GLFWwindow* window, int key, int scancode, int act, int mods)
         vopt.label = mjMIN(mjNLABEL-1, vopt.label+1);
         break;
 
-	case GLFW_KEY_F7:
-		virtual_controllerButton = GLFW_KEY_F7;
-		break;
+    case GLFW_KEY_F7:
+        virtual_controllerButton = GLFW_KEY_F7;
+        break;
 
-	case GLFW_KEY_F8:
-		virtual_controllerButton = GLFW_KEY_F8;
-		break;
+    case GLFW_KEY_F8:
+        virtual_controllerButton = GLFW_KEY_F8;
+        break;
 
     case GLFW_KEY_BACKSPACE:
-		reset_request = true;
+        reset_request = true;
         break;
 
     default:
@@ -217,10 +217,10 @@ void keyboard(GLFWwindow* window, int key, int scancode, int act, int mods)
 // device type
 enum
 {
-	vDEVICE_CONTROLLER = 0,
-	vDEVICE_TRACKER,
+    vDEVICE_CONTROLLER = 0,
+    vDEVICE_TRACKER,
 
-	vNDEVICE
+    vNDEVICE
 };
 
 
@@ -258,8 +258,8 @@ const char* toolName[vNTOOL] = {
 struct _vController_t
 {
     // constant properties
-	int id;                         // device id; -1: not used
-	int device;						// device type;(vDEVICE_XXX)
+    int id;                         // device id; -1: not used
+    int device;                     // device type;(vDEVICE_XXX)
     int idtrigger;                  // trigger axis id
     int idpad;                      // trackpad axis id
     float rgba[4];                  // controller color
@@ -362,24 +362,24 @@ void v_initPre(void)
 
         // found HMD
         if( cls==TrackedDeviceClass_HMD )
-		{	
-			printf("Headset (id:%d) found\n", n);
-			hmd.id = n;
-		}
+        {   
+            printf("Headset (id:%d) found\n", n);
+            hmd.id = n;
+        }
         // found Controller: max 2 supported
         else if(cls==TrackedDeviceClass_Controller && cnt<2 )
         {
-			printf("Controller (id:%d) found\n", n);
+            printf("Controller (id:%d) found\n", n);
             ctl[cnt].id = n;
-			ctl[cnt].device = vDEVICE_CONTROLLER;
+            ctl[cnt].device = vDEVICE_CONTROLLER;
             cnt++;
         }
-		else if (cls==TrackedDeviceClass_GenericTracker)
-		{
-			printf("Tracker (id:%d) found\n", n);
+        else if (cls==TrackedDeviceClass_GenericTracker)
+        {
+            printf("Tracker (id:%d) found\n", n);
             ctl[cnt].id = n;
-			ctl[cnt].device = vDEVICE_TRACKER;
-			cnt++;
+            ctl[cnt].device = vDEVICE_TRACKER;
+            cnt++;
         }
     }
 
@@ -637,9 +637,9 @@ void v_update(void)
             case VREvent_ButtonPress:
                 ctl[n].hold[button] = true;
 
-				// disable tracking if setting changes //??? Vik: Needs better handeling of this given the  Toggle trackMocap0/1 options below
-				// if((button != vBUTTON_SIDE) && (button != vBUTTON_TRIGGER) )
-					//trackMocap[n] = false;
+                // disable tracking if setting changes //??? Vik: Needs better handeling of this given the  Toggle trackMocap0/1 options below
+                // if((button != vBUTTON_SIDE) && (button != vBUTTON_TRIGGER) )
+                    //trackMocap[n] = false;
 
                 // trigger button: save relative pose
                 if( button==vBUTTON_TRIGGER )
@@ -685,47 +685,47 @@ void v_update(void)
                         sprintf(ctl[n].message, "body %d", ctl[n].body);
                 }
 
-				// pad button: change selection for pull tool and show message
+                // pad button: change selection for pull tool and show message
                 else if( button==vBUTTON_PAD && ctl[n].tool!=vTOOL_PULL )
                 {
-					ctl[n].messageduration = 1;
+                    ctl[n].messageduration = 1;
                     ctl[n].messagestart = glfwGetTime();
-					
-					// Left button reset the scene
+                    
+                    // Left button reset the scene
                     if(ctl[n].padpos[0]<-0.5 && abs(ctl[n].padpos[1]<0.5))
                     {
-						reset_request = true;
-						sprintf(ctl[n].message, "Reset");
-						printf("Reset, trackMocap0: %d, trackMocap0: %d\n", (int)trackMocap[0], (int)trackMocap[1]);
+                        reset_request = true;
+                        sprintf(ctl[n].message, "Reset");
+                        printf("Reset, trackMocap0: %d, trackMocap0: %d\n", (int)trackMocap[0], (int)trackMocap[1]);
                     }
-					// right button: Toggle saving logs
+                    // right button: Toggle saving logs
                     else if(ctl[n].padpos[0]>0.5 && abs(ctl[n].padpos[1]<0.5))
                     {
-						saveLogs=!saveLogs;
-						sprintf(ctl[n].message, "Savelogs: %d\n", (int)saveLogs);
-						printf("Savelogs: %d\n", (int)saveLogs);
-					}
-					// down button: Toggle trackMocap0
+                        saveLogs=!saveLogs;
+                        sprintf(ctl[n].message, "Savelogs: %d\n", (int)saveLogs);
+                        printf("Savelogs: %d\n", (int)saveLogs);
+                    }
+                    // down button: Toggle trackMocap0
                     else if(abs(ctl[n].padpos[0])<0.5 && ctl[n].padpos[1]<-.5)
                     {
-						trackMocap[0] = !trackMocap[0];
-						sprintf(ctl[n].message, "trackMocap0: %d\n", (int)trackMocap[0]);
-						printf("trackMocap0: %d\n", (int)trackMocap[0]);
-					}
-					// up button: Toggle trackMocap1
+                        trackMocap[0] = !trackMocap[0];
+                        sprintf(ctl[n].message, "trackMocap0: %d\n", (int)trackMocap[0]);
+                        printf("trackMocap0: %d\n", (int)trackMocap[0]);
+                    }
+                    // up button: Toggle trackMocap1
                     else if(abs(ctl[n].padpos[0])<0.5 && ctl[n].padpos[1]>0.5)
                     {
-						trackMocap[1] = !trackMocap[1];
-						sprintf(ctl[n].message, "trackMocap1: %d\n", (int)trackMocap[1]);
-						printf("trackMocap1: %d\n", (int)trackMocap[1]);
-					}
-				}
+                        trackMocap[1] = !trackMocap[1];
+                        sprintf(ctl[n].message, "trackMocap1: %d\n", (int)trackMocap[1]);
+                        printf("trackMocap1: %d\n", (int)trackMocap[1]);
+                    }
+                }
 
                 // side button: reserved for user
                 else if( button==vBUTTON_SIDE )
                 {
                     // user can trigger custom action here
-					trackMocap[n] = !trackMocap[n];
+                    trackMocap[n] = !trackMocap[n];
                 }
 
                 break;
@@ -753,36 +753,36 @@ void v_update(void)
             }
         }
 
-	// Process virtual keys
-	switch(virtual_controllerButton)
-	{
-	case GLFW_KEY_F7:
-		trackMocap[0] = !trackMocap[0];
-		break;
-	case GLFW_KEY_F8:
-		trackMocap[1] = !trackMocap[1];
-		break;
-	}
-	virtual_controllerButton = -1; // mark as processed
+    // Process virtual keys
+    switch(virtual_controllerButton)
+    {
+    case GLFW_KEY_F7:
+        trackMocap[0] = !trackMocap[0];
+        break;
+    case GLFW_KEY_F8:
+        trackMocap[1] = !trackMocap[1];
+        break;
+    }
+    virtual_controllerButton = -1; // mark as processed
 
     // finish controller update, after processing events
     for( n=0; n<2; n++ )
         if( ctl[n].id>=0 )
         {
-			// record relative pose
-			if((!trackMocap[n]) && !ctl[n].hold[vBUTTON_TRIGGER])
-			{				
-				mjtNum negp[3], negq[4], xiquat[4];
-				mju_mulQuat(xiquat, d->xquat + 4 * ctl[n].body, m->body_iquat + 4 * ctl[n].body);
-				mju_negPose(negp, negq, ctl[n].pos, ctl[n].quat);
-				mju_mulPose(ctl[n].relpos, ctl[n].relquat, negp, negq, d->xipos + 3 * ctl[n].body, xiquat);
-			}
+            // record relative pose
+            if((!trackMocap[n]) && !ctl[n].hold[vBUTTON_TRIGGER])
+            {               
+                mjtNum negp[3], negq[4], xiquat[4];
+                mju_mulQuat(xiquat, d->xquat + 4 * ctl[n].body, m->body_iquat + 4 * ctl[n].body);
+                mju_negPose(negp, negq, ctl[n].pos, ctl[n].quat);
+                mju_mulPose(ctl[n].relpos, ctl[n].relquat, negp, negq, d->xipos + 3 * ctl[n].body, xiquat);
+            }
 
             // update target pose
             if( (ctl[n].hold[vBUTTON_TRIGGER] && ctl[n].tool!=vTOOL_MOVE ) || (trackMocap[n] && ctl[n].tool != vTOOL_MOVE) )
-			{    mju_mulPose(ctl[n].targetpos, ctl[n].targetquat, 
+            {    mju_mulPose(ctl[n].targetpos, ctl[n].targetquat, 
                     ctl[n].pos, ctl[n].quat, ctl[n].relpos, ctl[n].relquat);
-			}
+            }
             else
             {
                 mju_copy3(ctl[n].targetpos, ctl[n].pos);
@@ -973,7 +973,7 @@ void v_render(void)
     // submit to vr
     const VRTextureBounds_t boundLeft = {0, 0, 0.5, 1};
     const VRTextureBounds_t boundRight = {0.5, 0, 1, 1};
-	Texture_t vTex = {(void*)hmd.idtex, TextureType_OpenGL, ColorSpace_Gamma};
+    Texture_t vTex = {(void*)hmd.idtex, TextureType_OpenGL, ColorSpace_Gamma};
     VRCompositor()->Submit(Eye_Left, &vTex, &boundLeft);
     VRCompositor()->Submit(Eye_Right, &vTex, &boundRight);
 
@@ -1000,9 +1000,9 @@ void v_close(void)
 // Type conversion
 int num2float(float* res, mjtNum* data, int n)
 {
-	for (int i = 0; i < n; i++)
-		res[i] = (float)data[i];
-	return n;
+    for (int i = 0; i < n; i++)
+        res[i] = (float)data[i];
+    return n;
 }
 
 // Save logs
@@ -1013,7 +1013,7 @@ void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
 {
     static bool initFlag = true;
     static float* writebuf = nullptr;
-	static FILE* logfile = nullptr;
+    static FILE* logfile = nullptr;
 
     if (initFlag&&!closeFile)
     {
@@ -1042,25 +1042,25 @@ void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
                 fwrite(m->names, sizeof(char), sz, logfile);
         }
 
-		writebuf = (float*)mju_malloc(sizeof(float)*(1 + m->nq + m->nv + m->nu
+        writebuf = (float*)mju_malloc(sizeof(float)*(1 + m->nq + m->nv + m->nu
         + 3 * m->nmocap + 4 * m->nmocap + m->nsensordata));
 
         initFlag = false;
     }
 
-	// close if requested
-	if(closeFile)
-	{	
+    // close if requested
+    if(closeFile)
+    {   
         if(logfile!=nullptr)
-			fclose(logfile);
+            fclose(logfile);
 
         mju_free(writebuf);
         writebuf = nullptr;
         logfile = nullptr;
         initFlag = true;
 
-		return;
-	}
+        return;
+    }
 
     // prepare float buffer
     
@@ -1081,88 +1081,88 @@ void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
 // configure devices
 void init_devices()
 {
-	int controller = mj_name2id(m, mjOBJ_BODY, "vive_controller");
-	int tracker = mj_name2id(m, mjOBJ_BODY, "vive_tracker");
-	
-	
-	if(controller != -1)
-		for(int i=0; i<2; i++)
-			if (ctl[i].device == vDEVICE_CONTROLLER)
-			{
-				ctl[i].body = controller;
-				ctl[i].tool = vTOOL_MOVE;
-			}
+    int controller = mj_name2id(m, mjOBJ_BODY, "vive_controller");
+    int tracker = mj_name2id(m, mjOBJ_BODY, "vive_tracker");
+    
+    
+    if(controller != -1)
+        for(int i=0; i<2; i++)
+            if (ctl[i].device == vDEVICE_CONTROLLER)
+            {
+                ctl[i].body = controller;
+                ctl[i].tool = vTOOL_MOVE;
+            }
 
 
-	if (tracker != -1)
-		for (int i = 0; i<2; i++)
-			if (ctl[i].device == vDEVICE_TRACKER)
-			{
-				ctl[i].body = tracker;
-				ctl[i].tool = vTOOL_PULL;
-			}
+    if (tracker != -1)
+        for (int i = 0; i<2; i++)
+            if (ctl[i].device == vDEVICE_TRACKER)
+            {
+                ctl[i].body = tracker;
+                ctl[i].tool = vTOOL_PULL;
+            }
 }
 
 // Custom User purturbations
 void user_perturbations(int ctl_n)
 {
-	if (trackMocap[ctl_n] == true)
-	{
-		// Control gripper if fetch
-		int rGripper = mj_name2id(m, mjOBJ_ACTUATOR, "r_gripper_finger_joint");
-		int lGripper = mj_name2id(m, mjOBJ_ACTUATOR, "l_gripper_finger_joint");
-		// engage only if both are found
-		if((rGripper!=-1)&&(lGripper!=-1)) 
-		{
-			const double scale = 1.0;
-			d->ctrl[rGripper] = m->actuator_ctrlrange[2 * rGripper] + scale*(1.0 - ctl[ctl_n].triggerpos)*
-				(m->actuator_ctrlrange[2 * rGripper + 1] - m->actuator_ctrlrange[2 * rGripper]);
-			d->ctrl[lGripper] = m->actuator_ctrlrange[2 * lGripper] + scale*(1.0 - ctl[ctl_n].triggerpos)*
-				(m->actuator_ctrlrange[2 * lGripper + 1] - m->actuator_ctrlrange[2 * lGripper]);
-		}
-		
+    if (trackMocap[ctl_n] == true)
+    {
+        // Control gripper if fetch
+        int rGripper = mj_name2id(m, mjOBJ_ACTUATOR, "r_gripper_finger_joint");
+        int lGripper = mj_name2id(m, mjOBJ_ACTUATOR, "l_gripper_finger_joint");
+        // engage only if both are found
+        if((rGripper!=-1)&&(lGripper!=-1)) 
+        {
+            const double scale = 1.0;
+            d->ctrl[rGripper] = m->actuator_ctrlrange[2 * rGripper] + scale*(1.0 - ctl[ctl_n].triggerpos)*
+                (m->actuator_ctrlrange[2 * rGripper + 1] - m->actuator_ctrlrange[2 * rGripper]);
+            d->ctrl[lGripper] = m->actuator_ctrlrange[2 * lGripper] + scale*(1.0 - ctl[ctl_n].triggerpos)*
+                (m->actuator_ctrlrange[2 * lGripper + 1] - m->actuator_ctrlrange[2 * lGripper]);
+        }
+        
 
-		// Control gripper if barrett hand
-		int F1_act = mj_name2id(m, mjOBJ_ACTUATOR, "F1_act");
-		int F2_act = mj_name2id(m, mjOBJ_ACTUATOR, "F2_act");
-		int F3_act = mj_name2id(m, mjOBJ_ACTUATOR, "F3_act");
-		// engage only if all are found
-		if((F1_act!=-1)&&(F2_act!=-1)&&(F3_act!=-1)) 
-		{
-			const double scale = 1.0;
-			d->ctrl[F1_act] = m->actuator_ctrlrange[2 * F1_act] + scale*(ctl[ctl_n].triggerpos)*
-				(m->actuator_ctrlrange[2 * F1_act + 1] - m->actuator_ctrlrange[2 * F1_act]);
-			d->ctrl[F2_act] = m->actuator_ctrlrange[2 * F2_act] + scale*(ctl[ctl_n].triggerpos)*
-				(m->actuator_ctrlrange[2 * F2_act + 1] - m->actuator_ctrlrange[2 * F2_act]);
-			d->ctrl[F3_act] = m->actuator_ctrlrange[2 * F3_act] + scale*(ctl[ctl_n].triggerpos)*
-				(m->actuator_ctrlrange[2 * F3_act + 1] - m->actuator_ctrlrange[2 * F3_act]);
-		}
+        // Control gripper if barrett hand
+        int F1_act = mj_name2id(m, mjOBJ_ACTUATOR, "F1_act");
+        int F2_act = mj_name2id(m, mjOBJ_ACTUATOR, "F2_act");
+        int F3_act = mj_name2id(m, mjOBJ_ACTUATOR, "F3_act");
+        // engage only if all are found
+        if((F1_act!=-1)&&(F2_act!=-1)&&(F3_act!=-1)) 
+        {
+            const double scale = 1.0;
+            d->ctrl[F1_act] = m->actuator_ctrlrange[2 * F1_act] + scale*(ctl[ctl_n].triggerpos)*
+                (m->actuator_ctrlrange[2 * F1_act + 1] - m->actuator_ctrlrange[2 * F1_act]);
+            d->ctrl[F2_act] = m->actuator_ctrlrange[2 * F2_act] + scale*(ctl[ctl_n].triggerpos)*
+                (m->actuator_ctrlrange[2 * F2_act + 1] - m->actuator_ctrlrange[2 * F2_act]);
+            d->ctrl[F3_act] = m->actuator_ctrlrange[2 * F3_act] + scale*(ctl[ctl_n].triggerpos)*
+                (m->actuator_ctrlrange[2 * F3_act + 1] - m->actuator_ctrlrange[2 * F3_act]);
+        }
 
 
-		// Control gripper if hv
-		rGripper = mj_name2id(m, mjOBJ_ACTUATOR, "FINGER_JOINT_1");
-		lGripper = mj_name2id(m, mjOBJ_ACTUATOR, "FINGER_JOINT_2");
-		// engage only if both are found
-		if((rGripper!=-1)&&(lGripper!=-1)) 
-		{
-			const double scale = 1.0;
-			d->ctrl[rGripper] = m->actuator_ctrlrange[2 * rGripper] + scale*(ctl[ctl_n].triggerpos)*
-				(m->actuator_ctrlrange[2 * rGripper + 1] - m->actuator_ctrlrange[2 * rGripper]);
-			d->ctrl[lGripper] = m->actuator_ctrlrange[2 * lGripper] + scale*(ctl[ctl_n].triggerpos)*
-				(m->actuator_ctrlrange[2 * lGripper + 1] - m->actuator_ctrlrange[2 * lGripper]);
-		}
-	}
+        // Control gripper if hv
+        rGripper = mj_name2id(m, mjOBJ_ACTUATOR, "FINGER_JOINT_1");
+        lGripper = mj_name2id(m, mjOBJ_ACTUATOR, "FINGER_JOINT_2");
+        // engage only if both are found
+        if((rGripper!=-1)&&(lGripper!=-1)) 
+        {
+            const double scale = 1.0;
+            d->ctrl[rGripper] = m->actuator_ctrlrange[2 * rGripper] + scale*(ctl[ctl_n].triggerpos)*
+                (m->actuator_ctrlrange[2 * rGripper + 1] - m->actuator_ctrlrange[2 * rGripper]);
+            d->ctrl[lGripper] = m->actuator_ctrlrange[2 * lGripper] + scale*(ctl[ctl_n].triggerpos)*
+                (m->actuator_ctrlrange[2 * lGripper + 1] - m->actuator_ctrlrange[2 * lGripper]);
+        }
+    }
 }
 
 // Instructions
 char* help = {
-	"-----------------------------------------------------------------\n"
-	"PUPPET:\t\tTeleoperate Mujoco world via HTCVive (& cyberGlove)\n"
-	"Requirements:\tHTCvive + 1 controller (+ 1 tracker, & cyberGlove)\n"
-	"Usage:\n"
-	"\t\t (1) puppet.exe <model_file> (<log_name>)\n"
-	"\t\t (2) puppet.exe <config_file>\n"
-	"-----------------------------------------------------------------\n\n"
+    "-----------------------------------------------------------------\n"
+    "PUPPET:\t\tTeleoperate Mujoco world via HTCVive (& cyberGlove)\n"
+    "Requirements:\tHTCvive + 1 controller (+ 1 tracker, & cyberGlove)\n"
+    "Usage:\n"
+    "\t\t (1) puppet.exe <model_file> (<log_name>)\n"
+    "\t\t (2) puppet.exe <config_file>\n"
+    "-----------------------------------------------------------------\n\n"
 };
 
 #include "user.cpp"
@@ -1178,9 +1178,133 @@ void closenclear()
     closeMuJoCo();
     glfwTerminate();
 
-	if(opt->USEGLOVE)
-		cGlove_clean(NULL);
+    if(opt->USEGLOVE)
+        cGlove_clean(NULL);
 }
+
+
+mjModel* m_mocap=nullptr;
+mjData* d_mocap=nullptr;
+bool init_flag_mocap = false;
+void qpos_from_site_pose_via_mocap(mjModel* m,
+                        mjData* d,
+                        mjtNum* qpos,
+                        char* site_name,
+                        mjtNum* target_pos,
+                        mjtNum* target_quat,
+                        mjvPerturb* pert,
+                        mjtNum tol=0.010,
+                        int max_steps=1
+                        )
+{
+    if(!init_flag_mocap)
+    {
+        init_flag_mocap = true;
+        // create model and data for IK
+        m_mocap = mj_copyModel(NULL, m);
+        d_mocap = mj_makeData(m_mocap);
+        // mj_copyData(d_mocap, m_mocap, d);
+        printf("copying new data\n");
+
+        // remove actuators from model
+        mju_zero(m_mocap->actuator_gainprm, m_mocap->nu*mjNGAIN);
+        mju_zero(m_mocap->actuator_biasprm, m_mocap->nu*mjNBIAS);
+
+        // activate/deactivate the mocap constraint
+        int vive_controller_bid = mj_name2id(m_mocap, mjOBJ_BODY, "vive_controller");
+        if(vive_controller_bid==-1)
+            mju_error("vive_controller body not found");
+
+        for (int ieq=0; ieq<m_mocap->neq; ieq++)
+        {   m_mocap->eq_active[ieq] = mjtByte(1);   // activate on the mocap model
+            
+            if(m_mocap->eq_type[ieq]==mjEQ_WELD)
+            {
+                if(m_mocap->eq_obj1id[ieq]==vive_controller_bid)
+                {   m->eq_active[ieq] = mjtByte(0);         // deactivate on the actuated model
+                    printf("obj1 is vive controller=================================================\n");
+                }
+                else if(m_mocap->eq_obj2id[ieq]==vive_controller_bid)
+                {   m->eq_active[ieq] = mjtByte(0);         // deactivate on the actuated model
+                    printf("obj2 is vive controller=================================================\n");
+                }
+            }
+
+        }
+
+        /*
+        // find end effector
+        int wrist_bid = mj_name2id(m_mocap, mjOBJ_BODY, "panda0_link7");
+        if(wrist_bid==-1)
+            mju_error("IK end effector not found");
+        int vive_controller_bid = mj_name2id(m_mocap, mjOBJ_BODY, "vive_controller");
+        if(vive_controller_bid==-1)
+            mju_error("vive_controller body not found");
+
+        // enable mocap constraint with the end effector
+        for (int ieq=0; ieq<m_mocap->neq; ieq++)
+        {   
+            if(m_mocap->eq_type[ieq]==mjEQ_WELD)
+            {
+                if(m_mocap->eq_obj1id[ieq]==vive_controller_bid)
+                {   m_mocap->eq_obj2id[ieq] = wrist_bid;
+                    printf("obj1 is vive controller\n");
+                }
+                else if(m_mocap->eq_obj2id[ieq]==vive_controller_bid)
+                {   m_mocap->eq_obj2id[ieq] = wrist_bid;
+                    printf("obj2 is vive controller\n");
+                }
+            }
+        }
+        */
+
+
+        // set rendering option
+        for(int jj=0; jj<m->ngeom; jj++)
+        {
+            m_mocap->geom_rgba[jj*4+0] = 0.5;
+            m_mocap->geom_rgba[jj*4+1] = 0.5;
+            m_mocap->geom_rgba[jj*4+2] = 0.5;
+            m_mocap->geom_rgba[jj*4+3] = 0.5;
+            m_mocap->geom_group[jj] = 5;
+            m_mocap->geom_conaffinity[jj] = 0;
+            m_mocap->geom_contype[jj] = 0;
+        }
+
+    }
+
+    // initialize variables
+    mjtNum site_xpos[3], err_pos[3];
+    int site_id = mj_name2id(m, mjOBJ_SITE, site_name);
+    int steps = 0;
+    bool success = false;
+    mjtNum err_norm = 0.0;
+
+    // apply
+    mjv_applyPerturbPose(m_mocap, d_mocap, pert, 0);
+    mjv_applyPerturbForce(m_mocap, d_mocap, pert);
+
+    // iterate for tracking via mocap constraints
+    for(steps=0; steps< max_steps; steps++)
+    {
+        // Translational error.
+        mju_copy3(site_xpos, d->site_xpos+3*site_id);
+        mju_sub3(err_pos, target_pos, site_xpos);
+        err_norm = mju_norm3(err_pos);
+
+        // Iterate
+        if (err_norm<tol)
+            break;
+        else
+            mj_step(m_mocap, d_mocap);
+    }
+
+    // results
+    mju_copy(qpos, d_mocap->qpos, m_mocap->nq);
+    // printf("err_norm=%2.4f, steps=%2d \n", err_norm, steps);
+}
+
+
 
 
 #include <thread>
@@ -1192,17 +1316,20 @@ void physics(bool& run)
     double stepTimeStamp = glfwGetTime();
     double stepDuration = 0.0;
     double stepLeft = 0.0;
+    mjtNum IK_qpos[100];
     while(run)
     {   
         // process reset:: resets the scene and clearns controller states
         if(reset_request)
         {
             resetMuJoCo();
+            init_flag_mocap = false; //reset the IK sim as well.
             trackMocap[0] = false;
             trackMocap[1] = false;
             reset_request = false;
+            printf("reset processed\n");
         }
-        
+
         // Refresh tracking data respecting skip
         // user_step+logging+mj_step are outside skip to maintain data/sim resolution.
         if((int)(float)(d->time/m->opt.timestep)%opt->skip==0)
@@ -1225,6 +1352,10 @@ void physics(bool& run)
                     // apply
                     mjv_applyPerturbPose(m, d, &pert, 0);
                     mjv_applyPerturbForce(m, d, &pert);
+
+                    // solve IK and map to actuators
+                    qpos_from_site_pose_via_mocap(m, d, IK_qpos, "end_effector", ctl[n].targetpos, NULL, &pert);
+                    mju_copy(d->ctrl, IK_qpos, m->nu);
 
                     // Apply user custom perturbations (finger controls)
                     user_perturbations(n);
@@ -1259,50 +1390,50 @@ void physics(bool& run)
 // main
 int main(int argc, char** argv)
 {
-	printf("%s", help);
+    printf("%s", help);
 
     // get options from command line or iteractively ---
-	char config_filename[100];
-	char log_filename[100];
-	cgOption simple_option;
+    char config_filename[100];
+    char log_filename[100];
+    cgOption simple_option;
 
     if( argc>=2 )
-	{	strcpy(config_filename, argv[1]);
-		if(argc>=3)
-			strcpy(log_filename, argv[2]);
-	}
+    {   strcpy(config_filename, argv[1]);
+        if(argc>=3)
+            strcpy(log_filename, argv[2]);
+    }
     else
     {
         printf("Enter model/config file: ");
         scanf("%s", config_filename);
     }
 
-	if( strlen(config_filename)>4 && 
-		(!strcmp(config_filename+strlen(config_filename)-4, ".xml") || 
-			!strcmp(config_filename+strlen(config_filename)-4, ".mjb") ) )
-	{
-		simple_option.modelFile = config_filename;
-		simple_option.logFile = log_filename;
-		simple_option.USEGLOVE = false;
-		opt = &simple_option;
-	}
-	else
-		opt = readOptions(config_filename);
-		
-	// init ----------------------------------------
-	if(opt->USEGLOVE)
-		cGlove_init(opt);
+    if( strlen(config_filename)>4 && 
+        (!strcmp(config_filename+strlen(config_filename)-4, ".xml") || 
+            !strcmp(config_filename+strlen(config_filename)-4, ".mjb") ) )
+    {
+        simple_option.modelFile = config_filename;
+        simple_option.logFile = log_filename;
+        simple_option.USEGLOVE = false;
+        opt = &simple_option;
+    }
+    else
+        opt = readOptions(config_filename);
+        
+    // init ----------------------------------------
+    if(opt->USEGLOVE)
+        cGlove_init(opt);
 
     // pre-initialize vr ----------------------------------
     v_initPre();
 
     // initialize MuJoCo, with image size from vr
     if( !initMuJoCo(opt->modelFile, (int)(2*hmd.width), (int)hmd.height) )
-	{	
-		closenclear();
-		printf("Error initializing MuJoCo\n");
-		return 0;
-	}
+    {   
+        closenclear();
+        printf("Error initializing MuJoCo\n");
+        return 0;
+    }
 
     // post-initialize vr
     v_initPost();
@@ -1310,9 +1441,9 @@ int main(int argc, char** argv)
     // set keyboard callback
     glfwSetKeyCallback(window, keyboard);
 
-	// configure devices
-	init_devices();
-	
+    // configure devices
+    init_devices();
+    
     // main loop
     bool run = true;
     std::thread ph_thread(physics, std::ref(run)); // pass by reference
@@ -1323,6 +1454,8 @@ int main(int argc, char** argv)
     {
         // create abstract scene
         mjv_updateScene(m, d, &vopt, NULL, NULL, mjCAT_ALL, &scn);
+        if(d_mocap!=nullptr)
+            mjv_addGeoms(m_mocap, d_mocap, &vopt, NULL, mjCAT_ALL, &scn);
 
         // update vr poses and controller states
         v_update();
@@ -1353,9 +1486,9 @@ int main(int argc, char** argv)
     run = false;
     ph_thread.join();
     printf("Physics thread exited\n");
-	printf("Main:>\t Done\n");
+    printf("Main:>\t Done\n");
 
-	closenclear();
-	Sleep(1000);
+    closenclear();
+    Sleep(1000);
     return 1;
 }

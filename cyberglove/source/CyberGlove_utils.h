@@ -67,6 +67,9 @@
 	// Get the latest data from the glove
 	void cGlove_getData(cgNum *buff, const int n_buff);
 
+	// Get the latest raw data from the glove
+	void cGlove_getRawData(cgNum *buff, const int n_buff);
+
 	//  Clean up glove
 	void cGlove_clean(char* errorInfo);
 

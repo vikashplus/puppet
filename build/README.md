@@ -3,19 +3,32 @@
 ## Requirements
 Vive headset and a minimum of one active controller. Optional equipments include additional vive controllers, vive trackers, and cyberglove.
 
-## Build and install
-1. Add environment variable ["MUJOCOPATH"](..//gallery//adding_system_variables.jpg) to the `System Properties`
-2. Open `x64 Native Tools Command Prompt` from visual studios.
-3. Type `SET MUJOCOPATH` to verify that the path is correctly set.
-3. Navigate to `build/` folder.
-4. Type `nmake` to build and install the project. It will compile two programs `puppet.exe` and `playlog.exe`.
-5. Use `nmake clean` if you need to clean the project installation. Note it doesn't clear recorded logs.
+## Build and install for Linux
+1. Ensure you have installed Nvidia driver
+2. Install steam
+    1. `sudo apt-get install steam`
+    2. `steam`
+    3. When you run steam, you will likely encounter some errors:
+        - `libGL error: no matching fbConfigs or visuals found`. Type `sudo lpconfig -p | grep -i gl.so` to see the version of your Nvidia driver and install the i386 version of libGL, e.g. `sudo apt install libnvidia-gl-460:i386`
+        - `LibGL error: failed to load driver: swrast`. [Try this post](https://www.errorsolutions.tech/error/libgl-error-failed-to-load-driver-swrast/)
+3. Install Mujoco.
+    - Extract to `~/.mujoco/mujoco200/...` (instead of `mujoco200_linux`).
+    - Place mjkey.txt in `~/.mujoco`
+    - Add to source `export MUJOCOPATH=~/.mujoco/`
+4. On Linux Build branch, edit `build/makefile`
+    - `MJ_PATH`
+    - `PUPPET_PATH`
+5. `cd puppet/build; make` will create puppet and playlog
+6. `ldd puppet` to ensure all libraries are found
+7. puppet will call `~/.local/share/Steam/steamapps/common/SteamVR/bin/linux64/vrmonitor`. When you run puppet for the first time you will likely see many errors, caused by this vrmonitor failing to find libraries. Some fixes:
+    - Cannot find libsteam-api.so. `export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/user/.local/share/Steam/steamapps/common/SteamVR/bin/linux64/`
+    - Cannot find libQt5Multimedia.so.5. `sudo apt install libqt5multimedia5`
+    - Cannot find libudev.so.0. You should first find your [STEAM RUNTIME wrapper](https://github.com/flathub/com.valvesoftware.Steam/issues/640). e.g. It is at `~/.local/share/Steam/ubuntu12_32/steam-runtime/run.sh`. Then, wrap puppet in the runtime environment by `~/.local/share/Steam/ubuntu12_32/steam-runtime/run.sh ./puppet humanoid.xml` (note how we pass the argument for puppet in).
 
 ## Usage
-1. puppet.exe is used for emersive visualization and interaction with the mujoco worlds.
-2. playlog.exe is can be used to replay recorded logs and dump raw video (Key F9 to start stop video recording) (pixel_format rgb24).   
+1. puppet is used for emersive visualization and interaction with the mujoco worlds.
+2. playlog is can be used to replay recorded logs and dump raw video (Key F9 to start stop video recording) (pixel_format rgb24).   
 
-Navigate to `build/` folder. Type `puppet.exe` or `playlog.exe` (without any arguments) for respective usage instructions. 
 
 **Note1**: Logs are dumped in mujoco's .mjl format. Refer [Mujoco documenation](http://www.mujoco.org/book/haptix.html#uiRecord) for details.  
 **Note2**: You can use [ffmpeg](https://ffmpeg.org/) to convert the raw video. Ensure that the video resolution and fps matches with the settings used while dumping raw video.

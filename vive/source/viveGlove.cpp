@@ -1641,7 +1641,7 @@ void physics(bool& run)
     double stepTimeStamp = glfwGetTime();
     double stepDuration = 0.0;
     double stepLeft = 0.0;
-    mjtNum IK_qpos[100];
+    mjtNum* IK_qpos = (mjtNum*) mju_malloc(sizeof(mjtNum) * m->nq);
     while(run)
     {
         // process reset:: resets the scene and clearns controller states
@@ -1709,6 +1709,8 @@ void physics(bool& run)
         if(stepLeft>=1.0)
             std::this_thread::sleep_for(std::chrono::milliseconds(int(stepLeft)));
     }
+    mju_free(IK_qpos);
+    IK_qpos = nullptr;
     printf("Physics thread exiting\n");
 }
 

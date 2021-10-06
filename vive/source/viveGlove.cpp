@@ -1510,6 +1510,127 @@ void closenclear()
 #endif
 }
 
+mjModel* m_mocap=nullptr;
+mjData* d_mocap=nullptr;
+bool init_flag_mocap = false;
+void qpos_from_site_pose_via_mocap(
+    mjModel* m,
+    mjData* d,
+    mjtNum* qpos,
+    char* site_name,
+    mjtNum* target_pos,
+    mjtNum* target_quat,
+    mjvPerturb* pert,
+    mjtNum tol=0.010,
+    int max_steps=1
+    )
+{
+    if(!init_flag_mocap)
+    {
+        init_flag_mocap = true;
+        // create model and data for IK
+        m_mocap = mj_copyModel(NULL, m);
+        d_mocap = mj_makeData(m_mocap);
+        // mj_copyData(d_mocap, m_mocap, d);
+        printf("copying new data\n");
+
+        // remove actuators from model
+        mju_zero(m_mocap->actuator_gainprm, m_mocap->nu*mjNGAIN);
+        mju_zero(m_mocap->actuator_biasprm, m_mocap->nu*mjNBIAS);
+
+        // activate/deactivate the mocap constraint
+        int vive_controller_bid = mj_name2id(m_mocap, mjOBJ_BODY, "vive_controller");
+        if(vive_controller_bid==-1)
+            mju_error("vive_controller body not found");
+
+        for (int ieq=0; ieq<m_mocap->neq; ieq++)
+        {   m_mocap->eq_active[ieq] = mjtByte(1);   // activate on the mocap model
+
+            if(m_mocap->eq_type[ieq]==mjEQ_WELD)
+            {
+                if(m_mocap->eq_obj1id[ieq]==vive_controller_bid)
+                {   m->eq_active[ieq] = mjtByte(0);         // deactivate on the actuated model
+                    printf("obj1 is vive controller=================================================\n");
+                }
+                else if(m_mocap->eq_obj2id[ieq]==vive_controller_bid)
+                {   m->eq_active[ieq] = mjtByte(0);         // deactivate on the actuated model
+                    printf("obj2 is vive controller=================================================\n");
+                }
+            }
+
+        }
+
+        /*
+        // find end effector
+        int wrist_bid = mj_name2id(m_mocap, mjOBJ_BODY, "panda0_link7");
+        if(wrist_bid==-1)
+            mju_error("IK end effector not found");
+        int vive_controller_bid = mj_name2id(m_mocap, mjOBJ_BODY, "vive_controller");
+        if(vive_controller_bid==-1)
+            mju_error("vive_controller body not found");
+        // enable mocap constraint with the end effector
+        for (int ieq=0; ieq<m_mocap->neq; ieq++)
+        {
+            if(m_mocap->eq_type[ieq]==mjEQ_WELD)
+            {
+                if(m_mocap->eq_obj1id[ieq]==vive_controller_bid)
+                {   m_mocap->eq_obj2id[ieq] = wrist_bid;
+                    printf("obj1 is vive controller\n");
+                }
+                else if(m_mocap->eq_obj2id[ieq]==vive_controller_bid)
+                {   m_mocap->eq_obj2id[ieq] = wrist_bid;
+                    printf("obj2 is vive controller\n");
+                }
+            }
+        }
+        */
+
+
+        // set rendering option
+        for(int jj=0; jj<m->ngeom; jj++)
+        {
+            m_mocap->geom_rgba[jj*4+0] = 0.5;
+            m_mocap->geom_rgba[jj*4+1] = 0.5;
+            m_mocap->geom_rgba[jj*4+2] = 0.5;
+            m_mocap->geom_rgba[jj*4+3] = 0.5;
+            m_mocap->geom_group[jj] = 5;
+            m_mocap->geom_conaffinity[jj] = 0;
+            m_mocap->geom_contype[jj] = 0;
+        }
+
+    }
+
+    // initialize variables
+    mjtNum site_xpos[3], err_pos[3];
+    int site_id = mj_name2id(m, mjOBJ_SITE, site_name);
+    int steps = 0;
+    bool success = false;
+    mjtNum err_norm = 0.0;
+
+    // apply
+    mjv_applyPerturbPose(m_mocap, d_mocap, pert, 0);
+    mjv_applyPerturbForce(m_mocap, d_mocap, pert);
+
+    // iterate for tracking via mocap constraints
+    for(steps=0; steps< max_steps; steps++)
+    {
+        // Translational error.
+        mju_copy3(site_xpos, d->site_xpos+3*site_id);
+        mju_sub3(err_pos, target_pos, site_xpos);
+        err_norm = mju_norm3(err_pos);
+
+        // Iterate
+        if (err_norm<tol)
+            break;
+        else
+            mj_step(m_mocap, d_mocap);
+    }
+
+    // results
+    mju_copy(qpos, d_mocap->qpos, m_mocap->nq);
+    // printf("err_norm=%2.4f, steps=%2d \n", err_norm, steps);
+}
+
 
 #include <thread>
 #include <chrono>
@@ -1520,15 +1641,18 @@ void physics(bool& run)
     double stepTimeStamp = glfwGetTime();
     double stepDuration = 0.0;
     double stepLeft = 0.0;
+    mjtNum IK_qpos[100];
     while(run)
     {
         // process reset:: resets the scene and clearns controller states
         if(reset_request)
         {
             resetMuJoCo();
+            init_flag_mocap = false; //reset the IK sim as well.
             trackMocap[0] = false;
             trackMocap[1] = false;
             reset_request = false;
+            printf("reset processed\n");
         }
 
         // Refresh tracking data respecting skip
@@ -1553,6 +1677,10 @@ void physics(bool& run)
                     // apply
                     mjv_applyPerturbPose(m, d, &pert, 0);
                     mjv_applyPerturbForce(m, d, &pert);
+
+                    // solve for IK and map to actuators
+                    qpos_from_site_pose_via_mocap(m, d, IK_qpos, "end_effector", ctl[n].targetpos, NULL, &pert);
+                    mju_copy(d->ctrl, IK_qpos, m->nu);
 
                     // Apply user custom perturbations (finger controls)
                     user_perturbations(n);
@@ -1654,6 +1782,8 @@ int main(int argc, char** argv)
     {
         // create abstract scene
         mjv_updateScene(m, d, &vopt, NULL, NULL, mjCAT_ALL, &scn);
+        if(d_mocap!=nullptr)
+            mjv_addGeoms(m_mocap, d_mocap, &vopt, NULL, mjCAT_ALL, &scn);
 
         // update vr poses and controller states
         v_update();

@@ -34,7 +34,7 @@ Vive headset and a minimum of one active controller. Optional equipments include
     - Extract to `~/.mujoco/mujoco200/...` (instead of `mujoco200_linux`).
     - Place mjkey.txt in `~/.mujoco`
     - Add to source `export MUJOCOPATH=~/.mujoco/`
-4. On Linux Build branch, edit `build/makefile`
+4. On Linux Build branch, edit `build/makefileLinux`
     - `MJ_PATH`
     - `PUPPET_PATH`
 5. `cd puppet/build; make` will create puppet and playlog

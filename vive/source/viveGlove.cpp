@@ -58,6 +58,7 @@ typedef struct _options
     // Mujoco
     char* viz_ip = "128.208.4.243";
     int skip = 1;       // update teleOP every skip steps(1: updates tracking every mj_step)
+    bool useIkAsPosCmd = false;      // instead of snap the robot to the solved IK, send IK as position cmd
 
     // feedback
     char* DOChan = "Dev2/port0/line0:7";
@@ -334,6 +335,7 @@ cgOption * readOptions(const char* filename)
     // Mujoco
     util_config(filename, "char* viz_ip", &option.viz_ip);
     util_config(filename, "int skip", &option.skip);
+    util_config(filename, "bool useIkAsPosCmd", &option.useIkAsPosCmd);
 
     // Calibration
     util_config(filename, "char* calibFile", &option.calibFile);
@@ -1525,7 +1527,7 @@ void qpos_from_site_pose_via_mocap(
     int max_steps=1
     )
 {
-    if(!init_flag_mocap)
+    if(!init_flag_mocap && opt->useIkAsPosCmd)
     {
         init_flag_mocap = true;
         // create model and data for IK
@@ -1679,8 +1681,11 @@ void physics(bool& run)
                     mjv_applyPerturbForce(m, d, &pert);
 
                     // solve for IK and map to actuators
-                    qpos_from_site_pose_via_mocap(m, d, IK_qpos, "end_effector", ctl[n].targetpos, NULL, &pert);
-                    mju_copy(d->ctrl, IK_qpos, m->nu);
+                    if(opt->useIkAsPosCmd)
+                    {
+                        qpos_from_site_pose_via_mocap(m, d, IK_qpos, "end_effector", ctl[n].targetpos, NULL, &pert);
+                        mju_copy(d->ctrl, IK_qpos, m->nu);
+                    }
 
                     // Apply user custom perturbations (finger controls)
                     user_perturbations(n);
@@ -1740,7 +1745,7 @@ int main(int argc, char** argv)
 		(!strcmp(config_filename+strlen(config_filename)-4, ".xml") ||
 			!strcmp(config_filename+strlen(config_filename)-4, ".mjb") ) )
 	{
-		simple_option.modelFile = config_filename;
+        simple_option.modelFile = config_filename;
 		simple_option.logFile = log_filename;
 		simple_option.USEGLOVE = false;
 		opt = &simple_option;

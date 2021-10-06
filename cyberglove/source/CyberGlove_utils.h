@@ -16,7 +16,7 @@
 
 		// Glove variables
 		char* glove_port = "COM1";
-		int baudRate = 115200; 
+		int baudRate = 115200;
 		int rawSenor_n = 22;
 		bool updateRawRange = false;
 
@@ -27,7 +27,7 @@
 		char* driver_port = "COM1";
 		char* logFile ="none";
 
-		// Calibration 
+		// Calibration
 		char* calibFile = "";
 		char* userRangeFile = "";
 		char* handRangeFile = "";
@@ -35,13 +35,14 @@
 		// Mujoco
 		char* viz_ip = "128.208.4.243";
 		int skip = 1;		// update teleOP every skip steps(1: updates tracking every mj_step)
+		bool useIkAsPosCmd = false;      // instead of snap the robot to the solved IK, send IK as position cmd
 
 		// feedback
 		char* DOChan = "Dev2/port0/line0:7";
 		int pulseWidth = 20; // width of feedback pulse in ms;
 
 	}cgOption;
-	
+
 	typedef struct _data
 	{
 		bool valid = false;		// is data valid?
@@ -54,7 +55,7 @@
 		cgNum* userRangeMat;	// User glove range
 		cgNum* handRangeMat;	// Hand joint ranges
 
-		std::thread glove_th;   // Glove background update thread 
+		std::thread glove_th;   // Glove background update thread
 		bool updateGlove;		// update glove with latest data?
 		std::mutex cgGlove;		// Mutex on the calibSamples
 	}cgData;
@@ -89,7 +90,7 @@
 
 	// Read data from a tab(or space) seperated file
 	int util_readFile(const char* Fname, cgNum* vec, const int size);
-	
+
 	// read configuration
 	int util_config(const char *fileName, const char *iname, void *var);
 

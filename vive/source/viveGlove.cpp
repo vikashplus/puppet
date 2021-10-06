@@ -8,30 +8,30 @@
 // The above copyright notice and this permission notice shall be included in all copies of the software.
 ================================================================= */
 
-
 #include "mujoco.h"
 #include "stdlib.h"
 #include <string>
+#include <stdio.h>
 
 #include "GL/glew.h"
 #include "glfw3.h"
-// #include <windows.h>
 #include <openvr.h>
 using namespace vr;
 
-// #include "CyberGlove_utils.h"	// cyberGlove
-
-#include <stdio.h>
+#if defined(_WIN32)
+#  include <windows.h>
+#  include "CyberGlove_utils.h"	// cyberGlove
+cgOption* opt;
+#elif defined(__unix__)
 #include <cstring>
-using namespace std;
+//using namespace std;
 #include <unistd.h>
 #include <math.h>
 #include <stdlib.h>
-
 typedef struct _options
 {
     // Use modes
-    bool USEGLOVE = true;
+    bool USEGLOVE = false;
     bool USEFEEDBACK = true;
     bool STREAM_2_VIZ = true;
     bool STREAM_2_DRIVER = true;
@@ -39,7 +39,7 @@ typedef struct _options
 
     // Glove variables
     char* glove_port = "COM1";
-    int baudRate = 115200; 
+    int baudRate = 115200;
     int rawSenor_n = 22;
     bool updateRawRange = false;
 
@@ -50,7 +50,7 @@ typedef struct _options
     char* driver_port = "COM1";
     char* logFile ="none";
 
-    // Calibration 
+    // Calibration
     char* calibFile = "";
     char* userRangeFile = "";
     char* handRangeFile = "";
@@ -93,7 +93,7 @@ FILE* util_fopen(const char* fileName, const char* mode)
     if(fp)
         return fp;
     else //strip out path
-    {   
+    {
         for(i=(int)strlen(fileName)-1;i>=0;i--)
             if(fileName[i]=='\\')
             {   fileName=fileName+i+1;
@@ -138,12 +138,12 @@ int util_config(const char *fileName, const char *iname, void *var)
         if(iswhite(name[q1]))
             name[q1]=0;
     }
-  
+
     // parse file for values
     file = util_fopen(fileName, "r");
-    
+
     while(fgets(line,1024,file))
-    {    
+    {
         lineCnt++;
         // remove comments
         if( (line[0]=='/') && (line[0]=='/') )
@@ -158,29 +158,29 @@ int util_config(const char *fileName, const char *iname, void *var)
             }
             line[q1]=0;
         }
-      
+
         strcpy(lineRaw, line);
 
         if(q1==-1)
         {   if(strcmp(line,"")!=0) // if not comment or empty line
             {   snprintf(errmsg,300, "No semicolon on line %d(%s) ... skipping\n",lineCnt,lineRaw);
                 util_warning(errmsg);
-            }   
+            }
             continue;
-        }           
+        }
         for(q1--;q1>=0;q1--)
             if(iswhite(line[q1]))
                 line[q1]=0;
-            else 
+            else
                 break;
         if(q1==-1)
         {   snprintf(errmsg,300, "No cgdata on line %d(%s) ... skipping\n",lineCnt,lineRaw);
             util_warning(errmsg);
             continue;
         }
-    
+
         numw=0;
-    
+
         if(line[q1]=='"')
         {
             line[q1]=0;
@@ -209,28 +209,28 @@ int util_config(const char *fileName, const char *iname, void *var)
                 continue;
             }
         }
-        else 
+        else
         {   for(;q1>=0;q1--)
                 if(iswhite(line[q1]))
                 {   line[q1]=0;
                     break;
                 }
         }
-    
+
         wordPtr[numw++]=line+q1+1;
-    
+
         for(q1--;q1>=0;q1--)
         {   if(q1==0||(iswhite(line[q1-1])&&(!iswhite(line[q1]))))
                 wordPtr[numw++]=line+q1;
             if(iswhite(line[q1]))
                 line[q1]=0;
         }
-    
+
         //printf("------------------------------------\n");
         //for(q1=0;q1<numw;q1++)printf("%d: (%s)\n",q1,wordPtr[q1]);
         //for(q1=0;q1<icnt;q1++)printf("input:%d: (%s)\n",q1,input[q1]);
 
-    
+
         if(numw!=4)
         {   snprintf(errmsg,300, "Not enough words (4 expected, %d got) on line %d (%s) ... skipping\n",numw,lineCnt,lineRaw);
             util_warning(errmsg);
@@ -241,19 +241,19 @@ int util_config(const char *fileName, const char *iname, void *var)
         {   snprintf(errmsg,300, "Not equal sign as word 3 on line %d(%s) ... skipping\n",lineCnt,lineRaw);
             util_warning(errmsg);
             continue;
-        }    
-    
+        }
+
         /*if(strcmp(wordPtr[2],input[1]) || strcmp(wordPtr[3],input[0]))
         {
             snprintf(errmsg,300, "INFO: type/names ([%s] [%s]) and([%s] [%s]) don't match on line %d(%s) ... skipping\n",wordPtr[3],wordPtr[2],input[0],input[1],lineCnt,lineRaw);
             util_warning(errmsg);
             continue;
-        } */   
-    
+        } */
+
         // Parse for variable values
         if(!strcmp(wordPtr[2], input[1])) // match variable name
         {
-            // Check variable type          
+            // Check variable type
             if(!strcmp(wordPtr[3],"int"))
             {   sscanf(wordPtr[0],"%d",(int*)var);
                 err=0;
@@ -288,7 +288,7 @@ int util_config(const char *fileName, const char *iname, void *var)
                     err=0;
                     break;
                 }
-                else 
+                else
                 {   snprintf(errmsg,300, "Wrong bool literal on line %d(%s) ... skipping\n",lineCnt,lineRaw);
                     util_warning(errmsg);
                     continue;
@@ -317,7 +317,7 @@ cgOption * readOptions(const char* filename)
     util_config(filename, "bool STREAM_2_VIZ", &option.STREAM_2_VIZ);
     util_config(filename, "bool STREAM_2_DRIVER", &option.STREAM_2_DRIVER);
     util_config(filename, "bool HIRES_DATA", &option.HIRES_DATA);
-    
+
     // Glove variables
     util_config(filename, "char* glove_port", &option.glove_port);
     util_config(filename, "int baudRate", &option.baudRate);
@@ -335,14 +335,14 @@ cgOption * readOptions(const char* filename)
     util_config(filename, "char* viz_ip", &option.viz_ip);
     util_config(filename, "int skip", &option.skip);
 
-    // Calibration 
+    // Calibration
     util_config(filename, "char* calibFile", &option.calibFile);
     util_config(filename, "char* userRangeFile", &option.userRangeFile);
     util_config(filename, "char* handRangeFile", &option.handRangeFile);
 
     return &option;
 }
-
+#endif
 
 
 //-------------------------------- MuJoCo global data -----------------------------------
@@ -378,7 +378,7 @@ void resetMuJoCo()
 int initMuJoCo(const char* filename, int width2, int height)
 {
 	printf("%s\n", filename);
-    
+
 	// init GLFW
     if( !glfwInit() )
     {
@@ -405,7 +405,11 @@ int initMuJoCo(const char* filename, int width2, int height)
 		printf("WARNING:: Environment variable 'MUJOCOPATH' not found. Defaulting to the local folder\n");
 	else
 		(std::string(mujocoPath));
+#if defined(__unix__)
 	sprintf(licensePath, "%smjkey.txt", mujocoPath);
+#elif defined(_WIN32)
+    sprintf(licensePath, "%s\\mjkey.txt", mujocoPath);
+#endif
 
     // activate
 	if(!mj_activate(licensePath))
@@ -449,7 +453,7 @@ int initMuJoCo(const char* filename, int width2, int height)
 
     // stereo mode
     scn.stereo = mjSTEREO_SIDEBYSIDE;
-    
+
 	return 1;
 }
 
@@ -684,7 +688,7 @@ void v_initPre(void)
 
         // found HMD
         if( cls==TrackedDeviceClass_HMD )
-		{	
+		{
 			printf("Headset (id:%d) found\n", n);
 			hmd.id = n;
 		}
@@ -739,7 +743,7 @@ void v_initPre(void)
             for( i=0; i<k_unControllerStateAxisCount; i++ )
             {
                 // get property
-                int prop = hmd.system->GetInt32TrackedDeviceProperty(ctl[n].id, 
+                int prop = hmd.system->GetInt32TrackedDeviceProperty(ctl[n].id,
                     (ETrackedDeviceProperty)(Prop_Axis0Type_Int32 + i));
 
                 // assign id if matching
@@ -750,7 +754,7 @@ void v_initPre(void)
             }
 
             // make sure all ids were found
-            if( (ctl[n].device==vDEVICE_CONTROLLER) && 
+            if( (ctl[n].device==vDEVICE_CONTROLLER) &&
                 (ctl[n].idtrigger<0 || ctl[n].idpad<0) )
                 mju_error("Trigger or Pad axis not found");
 
@@ -880,8 +884,8 @@ void v_update(void)
         // assign position, apply eye-to-head offset
         for( i=0; i<3; i++ )
             scn.camera[n].pos[i] = hmd.roompos[i] +
-                hmd.eyeoffset[n][0]*hmd.roommat[3*i+0] + 
-                hmd.eyeoffset[n][1]*hmd.roommat[3*i+1] + 
+                hmd.eyeoffset[n][0]*hmd.roommat[3*i+0] +
+                hmd.eyeoffset[n][1]*hmd.roommat[3*i+1] +
                 hmd.eyeoffset[n][2]*hmd.roommat[3*i+2];
 
         // assign forward and up
@@ -931,7 +935,7 @@ void v_update(void)
                 n = 1;
             else
                 continue;
-            
+
             // get button
             int button = vBUTTON_TRIGGER;
             switch( evt.data.controller.button )
@@ -1012,7 +1016,7 @@ void v_update(void)
                 {
 					ctl[n].messageduration = 1;
                     ctl[n].messagestart = glfwGetTime();
-					
+
 					// Left button reset the scene
                     if(ctl[n].padpos[0]<-0.5 && abs(ctl[n].padpos[1]<0.5))
                     {
@@ -1028,14 +1032,14 @@ void v_update(void)
 						printf("Savelogs: %d\n", (int)saveLogs);
 					}
 					// down button: Toggle trackMocap0
-                    else if(fabs(ctl[n].padpos[0])<0.5 && ctl[n].padpos[1]<-.5)
+                    else if(std::abs(ctl[n].padpos[0])<0.5 && ctl[n].padpos[1]<-.5)
                     {
 						trackMocap[0] = !trackMocap[0];
 						sprintf(ctl[n].message, "trackMocap0: %d\n", (int)trackMocap[0]);
 						printf("trackMocap0: %d\n", (int)trackMocap[0]);
 					}
 					// up button: Toggle trackMocap1
-                    else if(fabs(ctl[n].padpos[0])<0.5 && ctl[n].padpos[1]>0.5)
+                    else if(std::abs(ctl[n].padpos[0])<0.5 && ctl[n].padpos[1]>0.5)
                     {
 						trackMocap[1] = !trackMocap[1];
 						sprintf(ctl[n].message, "trackMocap1: %d\n", (int)trackMocap[1]);
@@ -1093,7 +1097,7 @@ void v_update(void)
         {
 			// record relative pose
 			if((!trackMocap[n]) && !ctl[n].hold[vBUTTON_TRIGGER])
-			{				
+			{
 				mjtNum negp[3], negq[4], xiquat[4];
 				mju_mulQuat(xiquat, d->xquat + 4 * ctl[n].body, m->body_iquat + 4 * ctl[n].body);
 				mju_negPose(negp, negq, ctl[n].pos, ctl[n].quat);
@@ -1102,7 +1106,7 @@ void v_update(void)
 
             // update target pose
             if( (ctl[n].hold[vBUTTON_TRIGGER] && ctl[n].tool!=vTOOL_MOVE ) || (trackMocap[n] && ctl[n].tool != vTOOL_MOVE) )
-			{    mju_mulPose(ctl[n].targetpos, ctl[n].targetquat, 
+			{    mju_mulPose(ctl[n].targetpos, ctl[n].targetquat,
                     ctl[n].pos, ctl[n].quat, ctl[n].relpos, ctl[n].relquat);
 			}
             else
@@ -1145,7 +1149,7 @@ void v_update(void)
             }
 
             // render connector for pull
-            if( scn.ngeom<scn.maxgeom && ctl[n].tool==vTOOL_PULL && 
+            if( scn.ngeom<scn.maxgeom && ctl[n].tool==vTOOL_PULL &&
                 ctl[n].body>0)// && ctl[n].hold[vBUTTON_TRIGGER] )
             {
                 mjtNum* p1 = ctl[n].targetpos;
@@ -1177,12 +1181,12 @@ void v_update(void)
             if( ctl[n].body>0 )
             {
                 // search all geoms
-                for( i=0; i<scn.ngeom; i++ )            
+                for( i=0; i<scn.ngeom; i++ )
                 {
                     g = scn.geoms + i;
 
                     // detect geoms belonging to selected body
-                    if( g->category==mjCAT_DYNAMIC && g->objtype==mjOBJ_GEOM && 
+                    if( g->category==mjCAT_DYNAMIC && g->objtype==mjOBJ_GEOM &&
                         m->geom_bodyid[g->objid]==ctl[n].body )
                     {
                         // common selection
@@ -1207,7 +1211,7 @@ void v_update(void)
 
     // apply move and scale (other tools applied before mj_step)
     for( n=0; n<2; n++ )
-        if( ctl[n].id>=0 && ctl[n].valid && 
+        if( ctl[n].id>=0 && ctl[n].valid &&
             ctl[n].tool==vTOOL_MOVE && ctl[n].hold[vBUTTON_TRIGGER] )
         {
             // apply scaling and reset
@@ -1252,7 +1256,7 @@ void v_update(void)
             float sa = (float)mju_sin(vel[1]);
             scn.translate[0] = ctl[n].roompos[0] + dx*ca + dz*sa;
             scn.translate[2] = ctl[n].roompos[2] - dx*sa + dz*ca;
-            
+
             // reset rotation
             for( i=0; i<9; i++ )
                 ctl[n].oldroommat[i] = ctl[n].roommat[i];
@@ -1372,7 +1376,7 @@ void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
 
 	// close if requested
 	if(closeFile)
-	{	
+	{
         if(logfile!=nullptr)
 			fclose(logfile);
 
@@ -1385,7 +1389,7 @@ void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
 	}
 
     // prepare float buffer
-    
+
     writebuf[0] = (float)d->time;
     int wpos = 1;
     wpos += num2float(writebuf + wpos, d->qpos, m->nq);
@@ -1405,8 +1409,8 @@ void init_devices()
 {
 	int controller = mj_name2id(m, mjOBJ_BODY, "vive_controller");
 	int tracker = mj_name2id(m, mjOBJ_BODY, "vive_tracker");
-	
-	
+
+
 	if(controller != -1)
 		for(int i=0; i<2; i++)
 			if (ctl[i].device == vDEVICE_CONTROLLER)
@@ -1434,7 +1438,7 @@ void user_perturbations(int ctl_n)
 		int rGripper = mj_name2id(m, mjOBJ_ACTUATOR, "r_gripper_finger_joint");
 		int lGripper = mj_name2id(m, mjOBJ_ACTUATOR, "l_gripper_finger_joint");
 		// engage only if both are found
-		if((rGripper!=-1)&&(lGripper!=-1)) 
+		if((rGripper!=-1)&&(lGripper!=-1))
 		{
 			const double scale = 1.0;
 			d->ctrl[rGripper] = m->actuator_ctrlrange[2 * rGripper] + scale*(1.0 - ctl[ctl_n].triggerpos)*
@@ -1442,14 +1446,14 @@ void user_perturbations(int ctl_n)
 			d->ctrl[lGripper] = m->actuator_ctrlrange[2 * lGripper] + scale*(1.0 - ctl[ctl_n].triggerpos)*
 				(m->actuator_ctrlrange[2 * lGripper + 1] - m->actuator_ctrlrange[2 * lGripper]);
 		}
-		
+
 
 		// Control gripper if barrett hand
 		int F1_act = mj_name2id(m, mjOBJ_ACTUATOR, "F1_act");
 		int F2_act = mj_name2id(m, mjOBJ_ACTUATOR, "F2_act");
 		int F3_act = mj_name2id(m, mjOBJ_ACTUATOR, "F3_act");
 		// engage only if all are found
-		if((F1_act!=-1)&&(F2_act!=-1)&&(F3_act!=-1)) 
+		if((F1_act!=-1)&&(F2_act!=-1)&&(F3_act!=-1))
 		{
 			const double scale = 1.0;
 			d->ctrl[F1_act] = m->actuator_ctrlrange[2 * F1_act] + scale*(ctl[ctl_n].triggerpos)*
@@ -1465,7 +1469,7 @@ void user_perturbations(int ctl_n)
 		rGripper = mj_name2id(m, mjOBJ_ACTUATOR, "FINGER_JOINT_1");
 		lGripper = mj_name2id(m, mjOBJ_ACTUATOR, "FINGER_JOINT_2");
 		// engage only if both are found
-		if((rGripper!=-1)&&(lGripper!=-1)) 
+		if((rGripper!=-1)&&(lGripper!=-1))
 		{
 			const double scale = 1.0;
 			d->ctrl[rGripper] = m->actuator_ctrlrange[2 * rGripper] + scale*(ctl[ctl_n].triggerpos)*
@@ -1500,8 +1504,10 @@ void closenclear()
     closeMuJoCo();
     glfwTerminate();
 
-// 	if(opt->USEGLOVE)
-// 		cGlove_clean(NULL);
+#ifdef _WIN32
+    if(opt->USEGLOVE)
+        cGlove_clean(NULL);
+#endif
 }
 
 
@@ -1510,12 +1516,12 @@ void closenclear()
 void physics(bool& run)
 {
     printf("Physics thread started\n");
-    
+
     double stepTimeStamp = glfwGetTime();
     double stepDuration = 0.0;
     double stepLeft = 0.0;
     while(run)
-    {   
+    {
         // process reset:: resets the scene and clearns controller states
         if(reset_request)
         {
@@ -1524,7 +1530,7 @@ void physics(bool& run)
             trackMocap[1] = false;
             reset_request = false;
         }
-        
+
         // Refresh tracking data respecting skip
         // user_step+logging+mj_step are outside skip to maintain data/sim resolution.
         if((int)(float)(d->time/m->opt.timestep)%opt->skip==0)
@@ -1535,7 +1541,7 @@ void physics(bool& run)
             // apply controller perturbations
             mju_zero(d->xfrc_applied, 6*m->nbody);
             for( int n=0; n<2; n++ )
-                if( ctl[n].valid && ctl[n].tool==vTOOL_PULL && 
+                if( ctl[n].valid && ctl[n].tool==vTOOL_PULL &&
                     ctl[n].body>0 && (ctl[n].hold[vBUTTON_TRIGGER]||trackMocap[n]==true))
                 {
                     // perpare mjvPerturb object
@@ -1551,10 +1557,11 @@ void physics(bool& run)
                     // Apply user custom perturbations (finger controls)
                     user_perturbations(n);
                 }
-            
+#ifdef _WIN32
             // get glove demands
-//            if(opt->USEGLOVE)
-//                cGlove_getData(d->ctrl, m->nu);
+            if(opt->USEGLOVE)
+                cGlove_getData(d->ctrl, m->nu);
+#endif
         }
 
         // user requests
@@ -1599,8 +1606,8 @@ int main(int argc, char** argv)
         scanf("%s", config_filename);
     }
 
-	if( strlen(config_filename)>4 && 
-		(!strcmp(config_filename+strlen(config_filename)-4, ".xml") || 
+	if( strlen(config_filename)>4 &&
+		(!strcmp(config_filename+strlen(config_filename)-4, ".xml") ||
 			!strcmp(config_filename+strlen(config_filename)-4, ".mjb") ) )
 	{
 		simple_option.modelFile = config_filename;
@@ -1610,17 +1617,19 @@ int main(int argc, char** argv)
 	}
 	else
 		opt = readOptions(config_filename);
-		
+
 	// init ----------------------------------------
-	// if(opt->USEGLOVE)
-	// 	cGlove_init(opt);
+#ifdef _WIN32
+    if(opt->USEGLOVE)
+        cGlove_init(opt);
+#endif
 
     // pre-initialize vr ----------------------------------
     v_initPre();
 
     // initialize MuJoCo, with image size from vr
     if( !initMuJoCo(opt->modelFile, (int)(2*hmd.width), (int)hmd.height) )
-	{	
+	{
 		closenclear();
 		printf("Error initializing MuJoCo\n");
 		return 0;
@@ -1634,7 +1643,7 @@ int main(int argc, char** argv)
 
 	// configure devices
 	init_devices();
-	
+
     // main loop
     bool run = true;
     std::thread ph_thread(physics, std::ref(run)); // pass by reference
@@ -1678,6 +1687,10 @@ int main(int argc, char** argv)
 	printf("Main:>\t Done\n");
 
 	closenclear();
-	usleep(1000);
+#if defined(__unix__)
+    usleep(1000);
+#elif defined(_WIN32)
+    Sleep(1000);
+#endif
     return 1;
 }

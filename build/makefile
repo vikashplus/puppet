@@ -1,21 +1,8 @@
-PUPPET_PATH = /home/franka/dev/puppet
-MJ_PATH = /home/franka/.mujoco/mujoco200
-MUJOCO = -I$(MJ_PATH)/include -L$(MJ_PATH)/bin
-LDFLAGS = -lmujoco200 -lGL -lglew -lpthread
-LIBGLFW = $(MJ_PATH)/bin/libglfw.so.3
-GLOVE_PATH = $(PUPPET_PATH)/cyberglove
-CGLOVE = -I$(GLOVE_PATH)/source $(GLOVE_PATH)/source/CyberGlove_utils.cpp
-MJVIVE = -I../vive/sdk/openVR -I../vive/sdk -DGLEW_STATIC ../vive/sdk/GL/glew.c 
-LIBVR = ../vive/sdk/openVR/libopenvr_api.so
-
-CC = g++
-CFLAGS = -Wall -std=c++11
-all:	
-	@echo Building ==============================
-	$(CC) $(CFLAGS) $(MUJOCO) ../vive/source/playlog.cpp $(LDFLAGS) $(LIBGLFW) -o ../build/playlog
-	$(CC) $(CFLAGS) $(MUJOCO) $(MJVIVE) ../vive/source/viveGlove.cpp $(LDFLAGS) $(LIBGLFW) $(LIBVR) -o ../build/puppet
-
-clean:
-	@echo Cleaning ==============================
-	rm ../build/playlog*
-	rm ../build/puppet*
+ifeq ($(OS),Windows_NT)
+  $(info detected OS is Windows_NT)
+  include makefileWin
+else
+  UNAME := $(shell uname)
+  $(info detected OS uname is $(UNAME))
+  include makefileLinux
+endif

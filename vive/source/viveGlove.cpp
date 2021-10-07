@@ -58,7 +58,11 @@ typedef struct _options
     // Mujoco
     char* viz_ip = "128.208.4.243";
     int skip = 1;       // update teleOP every skip steps(1: updates tracking every mj_step)
-    bool useIkAsPosCmd = false;      // instead of snap the robot to the solved IK, send IK as position cmd
+
+    // Inverse Kinematics
+    char* ik_body_name = "none"; // body to use for IK
+    int ik_pos_tolerance = .001; // pos tolerance for IK
+    int ik_max_steps = 1;	     // max mjstep for IK
 
     // feedback
     char* DOChan = "Dev2/port0/line0:7";
@@ -311,7 +315,7 @@ int util_config(const char *fileName, const char *iname, void *var)
 }
 
 // Read options from the config file
-cgOption * readOptions(const char* filename)
+cgOption* readOptions(const char* filename)
 {
     // Use modes
     util_config(filename, "bool USEGLOVE", &option.USEGLOVE);
@@ -335,13 +339,16 @@ cgOption * readOptions(const char* filename)
     // Mujoco
     util_config(filename, "char* viz_ip", &option.viz_ip);
     util_config(filename, "int skip", &option.skip);
-    util_config(filename, "bool useIkAsPosCmd", &option.useIkAsPosCmd);
+
+    // Inverse Kinematics
+    util_config(filename, "char* ik_body_name", &option.ik_body_name);
+    util_config(filename, "char* ik_pos_tolerance", &option.ik_pos_tolerance);
+    util_config(filename, "char* ik_max_steps", &option.ik_max_steps);
 
     // Calibration
     util_config(filename, "char* calibFile", &option.calibFile);
     util_config(filename, "char* userRangeFile", &option.userRangeFile);
     util_config(filename, "char* handRangeFile", &option.handRangeFile);
-
     return &option;
 }
 #endif
@@ -1526,7 +1533,7 @@ void qpos_from_site_pose_via_mocap(mjModel* m,
                         int max_steps=5
                         )
 {
-    if(!init_flag_mocap && opt->useIkAsPosCmd)
+    if(!init_flag_mocap && (strcmp(opt->ik_body_name, "none")!=0))
     {
         init_flag_mocap = true;
         // create model and data for IK
@@ -1767,8 +1774,8 @@ int main(int argc, char** argv)
 		simple_option.USEGLOVE = false;
 		opt = &simple_option;
 	}
-	else
-		opt = readOptions(config_filename);
+    else
+        opt = readOptions(config_filename);
 
 	// init ----------------------------------------
 #ifdef _WIN32

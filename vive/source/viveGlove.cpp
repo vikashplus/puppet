@@ -43,7 +43,7 @@ bool reset_request = false;
 //-------------------------------- MuJoCo functions -------------------------------------
 
 // reset scene
-void resetMuJoCo()
+void resetMuJoCo(mjModel* m, mjData* d)
 {
     if(m->nkey>0)
         mj_resetDataKeyframe(m, d, 0); // defaults to first key, if found
@@ -103,7 +103,7 @@ int initMuJoCo(const char* filename, int width2, int height)
 
     // make data, run one computation to initialize all fields
     d = mj_makeData(m);
-    resetMuJoCo();
+    resetMuJoCo(m, d);
 
     // set offscreen buffer size to match HMD
     m->vis.global.offwidth = width2;
@@ -1020,7 +1020,7 @@ void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
         char name[100];
         time_t now = time(0);
         strftime(logTimestr, sizeof(name), "%Y_%m_%d_%H_%M_%S", localtime(&now));
-        sprintf(name, "%s_%s.log", filename, logTimestr);
+        sprintf(name, "%s_%s.mjl", filename, logTimestr);
         logfile = fopen(name,"wb");
         if (logfile == NULL)
         {
@@ -1194,7 +1194,7 @@ void qpos_from_site_pose_via_mocap(mjModel* m,
                         mjtNum* target_quat,
                         mjvPerturb* pert,
                         mjtNum tol=0.010,
-                        int max_steps=1
+                        int max_steps=5
                         )
 {
     if(!init_flag_mocap)
@@ -1203,61 +1203,53 @@ void qpos_from_site_pose_via_mocap(mjModel* m,
         // create model and data for IK
         m_mocap = mj_copyModel(NULL, m);
         d_mocap = mj_makeData(m_mocap);
-        // mj_copyData(d_mocap, m_mocap, d);
+        mj_copyData(d_mocap, m_mocap, d);
         printf("copying new data\n");
 
         // remove actuators from model
         mju_zero(m_mocap->actuator_gainprm, m_mocap->nu*mjNGAIN);
         mju_zero(m_mocap->actuator_biasprm, m_mocap->nu*mjNBIAS);
 
-        // activate/deactivate the mocap constraint
+        // find controller body
         int vive_controller_bid = mj_name2id(m_mocap, mjOBJ_BODY, "vive_controller");
         if(vive_controller_bid==-1)
-            mju_error("vive_controller body not found");
+            mju_error("vive_controller body, needed to perform IK, not found.");
 
-        for (int ieq=0; ieq<m_mocap->neq; ieq++)
-        {   m_mocap->eq_active[ieq] = mjtByte(1);   // activate on the mocap model
-            
-            if(m_mocap->eq_type[ieq]==mjEQ_WELD)
-            {
-                if(m_mocap->eq_obj1id[ieq]==vive_controller_bid)
-                {   m->eq_active[ieq] = mjtByte(0);         // deactivate on the actuated model
-                    printf("obj1 is vive controller=================================================\n");
-                }
-                else if(m_mocap->eq_obj2id[ieq]==vive_controller_bid)
-                {   m->eq_active[ieq] = mjtByte(0);         // deactivate on the actuated model
-                    printf("obj2 is vive controller=================================================\n");
-                }
-            }
-
-        }
-
-        /*
-        // find end effector
-        int wrist_bid = mj_name2id(m_mocap, mjOBJ_BODY, "panda0_link7");
-        if(wrist_bid==-1)
-            mju_error("IK end effector not found");
-        int vive_controller_bid = mj_name2id(m_mocap, mjOBJ_BODY, "vive_controller");
+        // find IK_body
+        int ik_bid = mj_name2id(m_mocap, mjOBJ_BODY, opt->ik_body_name);
         if(vive_controller_bid==-1)
-            mju_error("vive_controller body not found");
-
-        // enable mocap constraint with the end effector
+            mju_error_s("Provided ik_body_name (%s) not found", opt->ik_body_name);
+        
+        // Set up the IK equality constraints with the mocap and the IK body
         for (int ieq=0; ieq<m_mocap->neq; ieq++)
-        {   
+        {
             if(m_mocap->eq_type[ieq]==mjEQ_WELD)
             {
+                bool ik_equality_refresh = false;
+                
+                // add IK body to the constraints
                 if(m_mocap->eq_obj1id[ieq]==vive_controller_bid)
-                {   m_mocap->eq_obj2id[ieq] = wrist_bid;
-                    printf("obj1 is vive controller\n");
+                {   m_mocap->eq_obj2id[ieq] = ik_bid;
+                    ik_equality_refresh= true;
                 }
-                else if(m_mocap->eq_obj2id[ieq]==vive_controller_bid)
-                {   m_mocap->eq_obj2id[ieq] = wrist_bid;
-                    printf("obj2 is vive controller\n");
+                else if (m_mocap->eq_obj2id[ieq]==vive_controller_bid)
+                {   m_mocap->eq_obj1id[ieq] = ik_bid;
+                    ik_equality_refresh= true;
+                }
+
+                // reset the mocap to overlap with IK body
+                if(ik_equality_refresh)
+                {
+                    int mocap_id = m_mocap->body_mocapid[vive_controller_bid];
+                    if(mocap_id==-1)
+                        mju_error("vive_controller body doesn't appear to be a mocap body");
+                    mju_copy3(m_mocap->body_pos+3*mocap_id, d->xpos+3*ik_bid);
+                    mju_copy(m_mocap->body_quat+4*mocap_id, d->xquat+4*ik_bid, 4);
+                    mju_zero(m_mocap->eq_data+mjNEQDATA*ieq, mjNEQDATA);
+                    m_mocap->eq_data[mjNEQDATA*ieq+3] = 1; // [0 0 0 1 0 0 0]
                 }
             }
         }
-        */
-
 
         // set rendering option
         for(int jj=0; jj<m->ngeom; jj++)
@@ -1265,11 +1257,30 @@ void qpos_from_site_pose_via_mocap(mjModel* m,
             m_mocap->geom_rgba[jj*4+0] = 0.5;
             m_mocap->geom_rgba[jj*4+1] = 0.5;
             m_mocap->geom_rgba[jj*4+2] = 0.5;
-            m_mocap->geom_rgba[jj*4+3] = 0.5;
+            m_mocap->geom_rgba[jj*4+3] = 0.2;
             m_mocap->geom_group[jj] = 5;
-            m_mocap->geom_conaffinity[jj] = 0;
-            m_mocap->geom_contype[jj] = 0;
         }
+
+        // disable collision
+        int ik_chain_geom_start = m_mocap->body_geomadr[m_mocap->body_rootid[ik_bid]];
+        int ik_chain_geom_end = m_mocap->body_geomadr[ik_bid]+m_mocap->body_geomnum[ik_bid];
+
+        for(int jj=0; jj<m_mocap->ngeom; jj++)
+        {
+            // preserve self collisions
+            if( (jj<ik_chain_geom_start) || (jj>ik_chain_geom_end) )
+            {
+                m_mocap->geom_conaffinity[jj] = 0;
+                m_mocap->geom_contype[jj] = 0;
+            }
+        }
+        
+        // set lower the damping for mocap model for speed
+        for(int jj=0; jj<m->nv; jj++)
+            m_mocap->dof_damping[jj] *= .1;
+        
+        // propagate changes
+        mj_forward(m_mocap, d_mocap);
 
     }
 
@@ -1313,7 +1324,7 @@ void physics(bool& run)
 {
     printf("Physics thread started\n");
     
-    double stepTimeStamp = glfwGetTime();
+    double stepBeginTimeStamp = glfwGetTime();
     double stepDuration = 0.0;
     double stepLeft = 0.0;
     mjtNum IK_qpos[100];
@@ -1322,21 +1333,25 @@ void physics(bool& run)
         // process reset:: resets the scene and clearns controller states
         if(reset_request)
         {
-            resetMuJoCo();
-            init_flag_mocap = false; //reset the IK sim as well.
+            resetMuJoCo(m, d);
+            if(m_mocap!=nullptr && d_mocap!=nullptr)
+                resetMuJoCo(m_mocap, d_mocap); //reset the IK sim
+
+            mju_copy(d->ctrl, m->key_qpos, m->nu); // ???: Vik: only helpful for position control (usual for teleOP models)
+            init_flag_mocap = false; 
             trackMocap[0] = false;
             trackMocap[1] = false;
             reset_request = false;
             printf("reset processed\n");
         }
 
+        // begin step
+        stepBeginTimeStamp = glfwGetTime();
+
         // Refresh tracking data respecting skip
         // user_step+logging+mj_step are outside skip to maintain data/sim resolution.
         if((int)(float)(d->time/m->opt.timestep)%opt->skip==0)
         {
-            // begin step
-            stepTimeStamp = glfwGetTime();
-
             // apply controller perturbations
             mju_zero(d->xfrc_applied, 6*m->nbody);
             for( int n=0; n<2; n++ )
@@ -1354,8 +1369,12 @@ void physics(bool& run)
                     mjv_applyPerturbForce(m, d, &pert);
 
                     // solve IK and map to actuators
-                    qpos_from_site_pose_via_mocap(m, d, IK_qpos, "end_effector", ctl[n].targetpos, NULL, &pert);
-                    mju_copy(d->ctrl, IK_qpos, m->nu);
+                    if(strcmp(opt->ik_body_name, "none")!=0)
+                    {
+                        qpos_from_site_pose_via_mocap(m, d, IK_qpos, "end_effector", ctl[n].targetpos,
+                            NULL, &pert, opt->ik_pos_tolerance, opt->ik_max_steps);
+                        mju_copy(d->ctrl, IK_qpos, m->nu);
+                    }
 
                     // Apply user custom perturbations (finger controls)
                     user_perturbations(n);
@@ -1377,7 +1396,7 @@ void physics(bool& run)
         mj_step(m, d);
 
         // real time sync
-        stepDuration = glfwGetTime() - stepTimeStamp;
+        stepDuration = glfwGetTime() - stepBeginTimeStamp;
         stepLeft = 1000.0*(m->opt.timestep-stepDuration);
 
         if(stepLeft>=1.0)

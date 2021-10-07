@@ -60,7 +60,7 @@ typedef struct _options
     int skip = 1;       // update teleOP every skip steps(1: updates tracking every mj_step)
 
     // Inverse Kinematics
-    char* ik_body_name = "none"; // body to use for IK
+    char* ik_body_name = "panda0_link7"; // body to use for IK
     int ik_pos_tolerance = .001; // pos tolerance for IK
     int ik_max_steps = 1;	     // max mjstep for IK
 

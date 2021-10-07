@@ -37,6 +37,11 @@
 		int skip = 1;		// update teleOP every skip steps(1: updates tracking every mj_step)
 		bool useIkAsPosCmd = false;      // instead of snap the robot to the solved IK, send IK as position cmd
 
+		// Inverse Kinematics
+		char* ik_body_name = "none"; // body to use for IK
+		int ik_pos_tolerance = .001; // pos tolerance for IK
+		int ik_max_steps = 1;	     // max mjstep for IK
+
 		// feedback
 		char* DOChan = "Dev2/port0/line0:7";
 		int pulseWidth = 20; // width of feedback pulse in ms;

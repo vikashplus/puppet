@@ -1,7 +1,7 @@
 MJ_PATH=$(MUJOCOPATH)/mujoco200_win64
 GLOVE_PATH=../cyberglove
 
-COMMON=/O2 /MT /EHsc
+COMMON=/O2 /MT /EHsc /MP
 MUJOCO=/I$(MJ_PATH)/include $(MJ_PATH)/bin/mujoco200.lib $(MJ_PATH)/bin/glfw3.lib opengl32.lib
 MJVIVE=/I../vive/sdk/openVR /I../vive/sdk -DGLEW_STATIC ../vive/sdk/GL/glew.c ../vive/sdk/openVR/openvr_api.lib
 CGLOVE=/I$(GLOVE_PATH)/source $(GLOVE_PATH)/source/CyberGlove.cpp $(GLOVE_PATH)/source/CyberGlove_utils.cpp

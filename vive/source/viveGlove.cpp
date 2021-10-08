@@ -1668,10 +1668,11 @@ void physics(bool& run)
         // process reset:: resets the scene and clearns controller states
         if(reset_request)
         {
-            resetMuJoCo(m, d);
+            //resetMuJoCo(m, d); Not reset, to enable a smooth movement of real robot
             if(m_mocap!=nullptr && d_mocap!=nullptr)
                 resetMuJoCo(m_mocap, d_mocap); //reset the IK sim
-
+            mju_copy3(d->mocap_pos, d_mocap->mocap_pos);
+            mju_copy(d->mocap_quat, d_mocap->mocap_quat, 4);
             mju_copy(d->ctrl, m->key_qpos, m->nu); // ???: Vik: only helpful for position control (usual for teleOP models)
             init_flag_mocap = false;
             trackMocap[0] = false;

@@ -118,7 +118,6 @@ void user_requests(mjModel *m, mjData *d, int request_idx, int request_id, mjtNu
         mjtNum noise;
         uniformDist(&noise, prms[0], prms[1], 1);
         d->ctrl[request_idx] +=noise;
-        //printf("injecting act noise");
         break;
 
         // randomize body pos
@@ -183,7 +182,8 @@ void user_step(mjModel* m, mjData* d)
         char error[1000] = "Could not save model";        
         char name[100];
         sprintf(name, "%s_%s.xml", opt->logFile, logTimestr);
-        mj_saveLastXML(name, m, error, 1000);
+        int ii = mj_saveLastXML(name, m, error, 1000);
+        printf("%d, %s\n", ii, error);
         printf("\tModel saved: %s%s.xml\n", opt->logFile, logTimestr);
     }
 

@@ -409,7 +409,7 @@ int util_config(const char *fileName, const char *iname, void *var)
 }
 
 // Read options from the config file
-cgOption * readOptions(const char* filename)
+cgOption* readOptions(const char* filename)
 {
 	// Use modes
 	util_config(filename, "bool USEGLOVE", &option.USEGLOVE);
@@ -433,6 +433,11 @@ cgOption * readOptions(const char* filename)
 	// Mujoco
 	util_config(filename, "char* viz_ip", &option.viz_ip);
 	util_config(filename, "int skip", &option.skip);
+
+	// Inverse Kinematics
+	util_config(filename, "char* ik_body_name", &option.ik_body_name);
+	util_config(filename, "char* ik_pos_tolerance", &option.ik_pos_tolerance);
+	util_config(filename, "char* ik_max_steps", &option.ik_max_steps);
 
 	// Calibration 
 	util_config(filename, "char* calibFile", &option.calibFile);

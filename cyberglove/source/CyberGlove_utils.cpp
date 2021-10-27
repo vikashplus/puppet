@@ -6,6 +6,39 @@
 static CyberGlove* persistentGlove = NULL;
 cgData cgdata;
 
+// Read cgdata from a tab(or space) seperated file
+int util_readFile(const char* Fname, cgNum* vec, const int size)
+{
+	int n_read, i;
+	FILE* fp;
+	char errmsg[300];
+	const int str_n = 5;
+	char str[str_n];
+	char fmt[100];
+
+	 // open the file, check for errors
+	fp = util_fopen(Fname, "r" );
+
+   // Read lines for values
+	for(i = 0; i<size; i++)
+	{	n_read = fscanf_s(fp, "%lf,", &vec[i]);
+		if (n_read!=1)
+		{	snprintf(fmt,300, "%%%ds", str_n);
+			n_read = fscanf_s(fp, fmt, str);
+			for(int j = 0; str[j]; j++)
+				str[j] = tolower(str[j]);
+			if( strcmp(str, "nan")==0) // if is a NaN
+				vec[i] = sqrt(-1.0);
+			else
+			{	snprintf(errmsg,300, "Problem reading file '%s'. Check cgdata format", Fname );
+				util_error(errmsg);
+			}
+		}
+	}
+	fclose (fp);
+	return 0;
+}
+
 // Normalize the raw sample
 void cGlove_nrmRawSample(cgNum* rawSample_nrm, cgNum* rawSample,
 							 cgNum* range, int rawSample_sz)
@@ -29,7 +62,7 @@ void cGlove_nrmRawSample(cgNum* rawSample_nrm, cgNum* rawSample,
 			else if (rawSample[i]>range[i+rawSample_sz])
 				rawSample[i]=range[i+rawSample_sz];
 		}
-		
+
 		// Normalize rawSamples
 		rawSample_nrm[i] = (rawSample[i]-range[i])/(range[i+rawSample_sz]-range[i]);
 	}
@@ -42,7 +75,7 @@ void cGlove_calibrateNrmSample(cgNum* calibSample, cgNum* rawSample_nrm, cgNum* 
 {
 	util_mulMatVec(calibSample, calib, rawSample_nrm, calibSample_sz, rawSample_sz+1);
 	for (int i=0; i<calibSample_sz; i++)
-	{	
+	{
 		// clamp [0 1]
 		if(calibSample[i]<0)
 			calibSample[i]=0;
@@ -90,10 +123,10 @@ void cGlove_freeData(cgData* d)
 
 
 // Clean up
-void cGlove_clean(char* errorInfo) 
+void cGlove_clean(char* errorInfo)
 {
 	printf("cGlove:>\t Cleaning up cgGlove..\n");
-	
+
 	// wait for thread
 	if(cgdata.updateGlove)
 	{
@@ -106,7 +139,7 @@ void cGlove_clean(char* errorInfo)
 		}
 		printf("cGlove:>\t Glove update thread exited\n");
 	}
-	
+
 	// remove glove
 	if(persistentGlove != NULL)
 		delete persistentGlove;
@@ -119,14 +152,14 @@ void cGlove_clean(char* errorInfo)
 		util_error(errorInfo);
 	else
 		printf("cGlove:>\t Clean up cgGlove :: Successful\n");
-} 
+}
 
 
-// connect to glove 
+// connect to glove
 void cGlove_connect(cgOption* o)
 {
 	printf("cGlove:>\t Trying to open glove port: %s\n", o->glove_port);
-	try 
+	try
 	{
 		persistentGlove = new CyberGlove(o->glove_port, o->baudRate);
 	}
@@ -134,7 +167,7 @@ void cGlove_connect(cgOption* o)
 	{
 		printf("cGlove:>\t Connection problem: %s\n", name.what());
 		printf("cGlove:>\t Retrying... \n");
-		try 
+		try
 		{
 			persistentGlove = new CyberGlove(o->glove_port, o->baudRate);
 		}
@@ -143,7 +176,7 @@ void cGlove_connect(cgOption* o)
 			printf("cGlove:>\t Connection problem. %s\n", name.what());
 		}
 	}
-	if(persistentGlove == NULL) 
+	if(persistentGlove == NULL)
 	{
 		cGlove_clean("Couldn't create glove interface.\n");
 	}
@@ -156,7 +189,7 @@ void cGlove_update(cgData* d, cgOption* o)
 {
 	printf("cGlove:>\t cGlove update thread started\n");
 
-	cgNum* calibSample_local = (cgNum*)util_malloc(100000+sizeof(cgNum)*o->calibSenor_n, 8); // Mujoco convension 
+	cgNum* calibSample_local = (cgNum*)util_malloc(100000+sizeof(cgNum)*o->calibSenor_n, 8); // Mujoco convension
 	int n_samples = persistentGlove->SampleSize();
 	static std::vector<unsigned int> inputSample(n_samples);
 
@@ -169,17 +202,17 @@ void cGlove_update(cgData* d, cgOption* o)
 			if(o->HIRES_DATA)
 				persistentGlove->GetHiResSample(&inputSample.front(),	persistentGlove->SampleSize(), d->timestamp);
 			else
-				persistentGlove->GetSample(&inputSample.front(), persistentGlove->SampleSize(), d->timestamp);  
+				persistentGlove->GetSample(&inputSample.front(), persistentGlove->SampleSize(), d->timestamp);
 		}
 		catch (std::runtime_error name)
 		{
 			printf("cGlove:>\t Error getting sample:: %s\n", name.what());
 		}
 
-		// Note : No mutex: partial info can be read by the graphics  
+		// Note : No mutex: partial info can be read by the graphics
 		for (int s=0; s<n_samples; s++)
 			d->rawSample[s] = (cgNum)inputSample[s];
-		
+
 		// ??? hack to avoid clipping. Remove when resolved
 		if(o->HIRES_DATA)
 			for (int s=0; s<n_samples; s++)

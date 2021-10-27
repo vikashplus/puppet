@@ -26,6 +26,9 @@
 
 	// Glove API ===============================
 
+	// Read data from a tab(or space) seperated file
+	int util_readFile(const char* Fname, cgNum* vec, const int size);
+
 	// Get the latest data from the glove
 	void cGlove_getData(cgNum *buff, const int n_buff);
 

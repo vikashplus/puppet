@@ -2,7 +2,11 @@
 // Read Configuration variables ===============
 #include <stdio.h>
 #include <string>
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
 #include <Windows.h>
+#define _WINDOWS_
+#endif
+#include <cstring>
 #include "utils.h"
 
 // Utilities ======================
@@ -80,59 +84,34 @@ FILE* util_fopen(const char* fileName, const char* mode)
 	FILE* fp;
 	char errmsg[300];
 	int i=0;
-	fopen_s(&fp, fileName, mode);
+	#ifdef _WINDOWS_
+		fopen_s(&fp, fileName, mode);
+	#else
+		fopen(fileName, mode);
+	#endif
 	if(fp)
 		return fp;
 	else //strip out path
-	{	
+	{
 		for(i=(int)strlen(fileName)-1;i>=0;i--)
 			if(fileName[i]=='\\')
 			{	fileName=fileName+i+1;
 				break;
 			}
+	#ifdef _WINDOWS_
 		fopen_s(&fp, fileName, mode);
+	#else
+		fopen(fileName, mode);
+	#endif
 	}
 	if(fp)
 		return fp;
 	else
 	{
-		sprintf_s(errmsg, "Problem opening file '%s'", fileName );
+		snprintf(errmsg,300, "Problem opening file '%s'", fileName);
 		util_error(errmsg);
 		return NULL;
 	}
-}
-
-// Read cgdata from a tab(or space) seperated file
-int util_readFile(const char* Fname, cgNum* vec, const int size)
-{
-	int n_read, i;
-	FILE* fp;
-	char errmsg[300];
-	const int str_n = 5;
-	char str[str_n];
-	char fmt[100];
-
-	 // open the file, check for errors
-	fp = util_fopen(Fname, "r" );
-	
-   // Read lines for values
-	for(i = 0; i<size; i++)
-	{	n_read = fscanf_s(fp, "%lf,", &vec[i]);
-		if (n_read!=1)
-		{	sprintf_s(fmt, "%%%ds", str_n);
-			n_read = fscanf_s(fp, fmt, str);
-			for(int j = 0; str[j]; j++)
-				str[j] = tolower(str[j]);
-			if( strcmp(str, "nan")==0) // if is a NaN
-				vec[i] = sqrt(-1.0);
-			else
-			{	sprintf_s(errmsg, "Problem reading file '%s'. Check cgdata format", Fname );
-				util_error(errmsg);
-			}
-		}
-	}
-	fclose (fp);
-	return 0;
 }
 
 // vector dot-product... FMA ???
@@ -144,7 +123,7 @@ cgNum util_dot(const cgNum* vec1, const cgNum* vec2, const int n)
 	for( i=0; i<n; i++ )
 		res += vec1[i] * vec2[i];
 
-	return res;	
+	return res;
 }
 
 // multiply matrix and vector
@@ -172,7 +151,12 @@ int util_config(const char *fileName, const char *iname, void *var)
 	char errmsg[300];
 
 	// parse input for variable name
-	strcpy_s(name, maxInputSz, iname);
+	#ifdef _WINDOWS_
+		strcpy_s(name, maxInputSz, iname);
+	#else
+		strcpy(name, iname);
+	#endif
+
 	len = (int)strlen(name);
 	for(q1=0; q1<len; q1++)
 	{
@@ -182,12 +166,12 @@ int util_config(const char *fileName, const char *iname, void *var)
 		if(iswhite(name[q1]))
 			name[q1]=0;
 	}
-  
+
 	// parse file for values
 	file = util_fopen(fileName, "r");
-	
+
 	while(fgets(line,1024,file))
-    {    
+    {
 		lineCnt++;
 		// remove comments
 		if( (line[0]=='/') && (line[0]=='/') )
@@ -202,35 +186,40 @@ int util_config(const char *fileName, const char *iname, void *var)
 			}
 			line[q1]=0;
 		}
-      
+
+	#ifdef _WINDOWS_
 		strcpy_s(lineRaw, maxInputSz, line);
+	#else
+		strcpy(lineRaw, line);
+	#endif
+
 
 		if(q1==-1)
 		{	if(strcmp(line,"")!=0) // if not comment or empty line
-			{	sprintf_s(errmsg, "No semicolon on line %d(%s) ... skipping\n",lineCnt,lineRaw);
+			{	snprintf(errmsg, 300, "No semicolon on line %d(%s) ... skipping\n",lineCnt,lineRaw);
 				util_warning(errmsg);
-			}	
+			}
 			continue;
-		}			
+		}
 		for(q1--;q1>=0;q1--)
 			if(iswhite(line[q1]))
 				line[q1]=0;
-			else 
+			else
 				break;
 		if(q1==-1)
-		{	sprintf_s(errmsg, "No cgdata on line %d(%s) ... skipping\n",lineCnt,lineRaw);
+		{	snprintf(errmsg,300, "No cgdata on line %d(%s) ... skipping\n",lineCnt,lineRaw);
 			util_warning(errmsg);
 			continue;
 		}
-    
+
 		numw=0;
-    
+
 		if(line[q1]=='"')
 		{
 			line[q1]=0;
 			for(q1--;q1>=0;q1--)if(line[q1]=='"')break;
 			if(q1==-1)
-			{	sprintf_s(errmsg, "Expected string on line %d(%s), no matching \" ... skipping\n",lineCnt,lineRaw);
+			{	snprintf(errmsg,300, "Expected string on line %d(%s), no matching \" ... skipping\n",lineCnt,lineRaw);
 				util_warning(errmsg);
 				continue;
 			}
@@ -242,69 +231,79 @@ int util_config(const char *fileName, const char *iname, void *var)
 			line[q1]=0;
 			for(q1--;q1>=0;q1--)if(line[q1]=='\'')break;
 			if(q1==-1)
-			{	sprintf_s(errmsg, "Expected char on line %d(%s), no matching \' ... skipping\n",lineCnt,lineRaw);
+			{	snprintf(errmsg,300, "Expected char on line %d(%s), no matching \' ... skipping\n",lineCnt,lineRaw);
 				util_warning(errmsg);
 				continue;
 			}
 			line[q1]=0;
 			if(cq1-q1!=2)
-			{	sprintf_s(errmsg, "Char needs to have length=1 %d(%s), no matching \' ... skipping\n",lineCnt,lineRaw);
+			{	snprintf(errmsg,300, "Char needs to have length=1 %d(%s), no matching \' ... skipping\n",lineCnt,lineRaw);
 				util_warning(errmsg);
 				continue;
 			}
 		}
-		else 
+		else
 		{	for(;q1>=0;q1--)
 				if(iswhite(line[q1]))
 				{	line[q1]=0;
 					break;
 				}
 		}
-    
+
 		wordPtr[numw++]=line+q1+1;
-    
+
 		for(q1--;q1>=0;q1--)
 		{	if(q1==0||(iswhite(line[q1-1])&&(!iswhite(line[q1]))))
 				wordPtr[numw++]=line+q1;
 			if(iswhite(line[q1]))
 				line[q1]=0;
 		}
-    
+
 		//printf("------------------------------------\n");
 		//for(q1=0;q1<numw;q1++)printf("%d: (%s)\n",q1,wordPtr[q1]);
 		//for(q1=0;q1<icnt;q1++)printf("input:%d: (%s)\n",q1,input[q1]);
 
-    
+
 		if(numw!=4)
-		{	sprintf_s(errmsg, "Not enough words (4 expected, %d got) on line %d (%s) ... skipping\n",numw,lineCnt,lineRaw);
+		{	snprintf(errmsg,300, "Not enough words (4 expected, %d got) on line %d (%s) ... skipping\n",numw,lineCnt,lineRaw);
 			util_warning(errmsg);
 			continue;
 		}
 
 		if(strcmp(wordPtr[1],"="))
-		{	sprintf_s(errmsg, "Not equal sign as word 3 on line %d(%s) ... skipping\n",lineCnt,lineRaw);
+		{	snprintf(errmsg,300, "Not equal sign as word 3 on line %d(%s) ... skipping\n",lineCnt,lineRaw);
 			util_warning(errmsg);
 			continue;
-		}    
-    
+		}
+
 		/*if(strcmp(wordPtr[2],input[1]) || strcmp(wordPtr[3],input[0]))
 		{
-			sprintf_s(errmsg, "INFO: type/names ([%s] [%s]) and([%s] [%s]) don't match on line %d(%s) ... skipping\n",wordPtr[3],wordPtr[2],input[0],input[1],lineCnt,lineRaw);
+			snprintf(errmsg,300, "INFO: type/names ([%s] [%s]) and([%s] [%s]) don't match on line %d(%s) ... skipping\n",wordPtr[3],wordPtr[2],input[0],input[1],lineCnt,lineRaw);
 			util_warning(errmsg);
 			continue;
-		} */   
-    
+		} */
+
 		// Parse for variable values
 		if(!strcmp(wordPtr[2], input[1])) // match variable name
 		{
-			// Check variable type			
+			// Check variable type
 			if(!strcmp(wordPtr[3],"int"))
-			{	sscanf_s(wordPtr[0],"%d",(int*)var);
+			{
+#ifdef _WINDOWS_
+				sscanf_s(wordPtr[0],"%d",(int*)var);
+#else
+				sscanf(wordPtr[0],"%d",(int*)var);
+#endif
 				err=0;
 				break;
 			}
 			else if(!strcmp(wordPtr[3],"double"))
-			{	sscanf_s(wordPtr[0],"%lf",(double*)var);
+			{
+#ifdef _WINDOWS_
+				sscanf_s(wordPtr[0],"%lf",(double*)var);
+#else
+				sscanf(wordPtr[0],"%lf",(double*)var);
+#endif
 				err=0;
 				break;
 			}
@@ -315,7 +314,11 @@ int util_config(const char *fileName, const char *iname, void *var)
 			}
 			else if(!strcmp(wordPtr[3],"char*"))
 			{	char*t=(char*)malloc((int)strlen(wordPtr[0])+1);
+	#ifdef _WINDOWS_
 				strcpy_s(t, (int)strlen(wordPtr[0])+1, wordPtr[0]);
+	#else
+				strcpy(t, wordPtr[0]);
+	#endif
 				*((char**)var)=t;
 				err=0;
 				break;
@@ -332,14 +335,14 @@ int util_config(const char *fileName, const char *iname, void *var)
 					err=0;
 					break;
 				}
-				else 
-				{	sprintf_s(errmsg, "Wrong bool literal on line %d(%s) ... skipping\n",lineCnt,lineRaw);
+				else
+				{	snprintf(errmsg,300, "Wrong bool literal on line %d(%s) ... skipping\n",lineCnt,lineRaw);
 					util_warning(errmsg);
 					continue;
 				}
 			}
 			else
-			{	sprintf_s(errmsg, "Type (%s) unrecognized on line %d(%s) ... skipping\n",wordPtr[3],lineCnt,lineRaw);
+			{	snprintf(errmsg,300, "Type (%s) unrecognized on line %d(%s) ... skipping\n",wordPtr[3],lineCnt,lineRaw);
 				util_warning(errmsg);
 				continue;
 			}
@@ -347,7 +350,7 @@ int util_config(const char *fileName, const char *iname, void *var)
     }
 	fclose(file);
 	if(err!=0)
-	{	sprintf_s(errmsg, "Variable (%s %s) not found ... skipping\n", input[0], input[1]);
+	{	snprintf(errmsg,300, "Variable (%s %s) not found ... skipping\n", input[0], input[1]);
 		util_warning(errmsg);
 	}
   return err;
@@ -361,7 +364,7 @@ cgOption* readOptions(const char* filename)
 	util_config(filename, "bool STREAM_2_VIZ", &option.STREAM_2_VIZ);
 	util_config(filename, "bool STREAM_2_DRIVER", &option.STREAM_2_DRIVER);
 	util_config(filename, "bool HIRES_DATA", &option.HIRES_DATA);
-	
+
 	// Glove variables
 	util_config(filename, "char* glove_port", &option.glove_port);
 	util_config(filename, "int baudRate", &option.baudRate);
@@ -384,7 +387,7 @@ cgOption* readOptions(const char* filename)
 	util_config(filename, "char* ik_pos_tolerance", &option.ik_pos_tolerance);
 	util_config(filename, "char* ik_max_steps", &option.ik_max_steps);
 
-	// Calibration 
+	// Calibration
 	util_config(filename, "char* calibFile", &option.calibFile);
 	util_config(filename, "char* userRangeFile", &option.userRangeFile);
 	util_config(filename, "char* handRangeFile", &option.handRangeFile);

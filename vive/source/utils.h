@@ -63,9 +63,6 @@
 	// free memory
 	void util_free(void* buf);
 
-	// Read data from a tab(or space) seperated file
-	int util_readFile(const char* Fname, cgNum* vec, const int size);
-
 	// read configuration
 	int util_config(const char *fileName, const char *iname, void *var);
 

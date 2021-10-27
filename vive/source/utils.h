@@ -36,7 +36,7 @@
 		bool useIkAsPosCmd = false; // instead of snap the robot to the solved IK, send IK as position cmd
 
 		// Inverse Kinematics
-		char* ik_body_name = "none"; // body to use for IK
+		char* ik_body_name = "panda0_link7"; // body to use for IK
 		int ik_pos_tolerance = .001; // pos tolerance for IK
 		int ik_max_steps = 1;	     // max mjstep for IK
 

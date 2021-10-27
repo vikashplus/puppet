@@ -1,6 +1,7 @@
 PUPPET_PATH = /home/franka/dev/puppet
 MJ_PATH = /home/franka/.mujoco/mujoco200
 
+UTILS=../vive/source/utils.cpp
 MUJOCO = -I$(MJ_PATH)/include -L$(MJ_PATH)/bin
 LDFLAGS = -lmujoco200 -lGL -lglew -lpthread
 LIBGLFW = $(MJ_PATH)/bin/libglfw.so.3
@@ -14,7 +15,7 @@ CFLAGS = -Wall -std=c++11
 all:
 	@echo Building ==============================
 	$(CC) $(CFLAGS) $(MUJOCO) ../vive/source/playlog.cpp $(LDFLAGS) $(LIBGLFW) -o ../build/playlog
-	$(CC) $(CFLAGS) $(MUJOCO) $(MJVIVE) ../vive/source/viveGlove.cpp $(LDFLAGS) $(LIBGLFW) $(LIBVR) -o ../build/puppet
+	$(CC) $(CFLAGS) $(MUJOCO) $(MJVIVE) ../vive/source/viveGlove.cpp $(UTILS) $(LDFLAGS) $(LIBGLFW) $(LIBVR) -o ../build/puppet
 
 clean:
 	@echo Cleaning ==============================

@@ -48,6 +48,10 @@
 
 	// Utilities ==============================
 
+	// Open file with specified path (else locally)
+	FILE* util_fopen(const char* fileName, const char* mode);
+
+
 	// write message to console, pause and exit
 	void util_error(const char* msg);
 

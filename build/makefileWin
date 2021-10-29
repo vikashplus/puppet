@@ -4,7 +4,7 @@ GLOVE_PATH=../cyberglove
 COMMON=/O2 /MT /EHsc /MP
 MUJOCO=/I$(MJ_PATH)/include $(MJ_PATH)/bin/mujoco200.lib $(MJ_PATH)/bin/glfw3.lib opengl32.lib
 UTILS=../vive/source/utils.cpp
-MJVIVE=/I../vive/sdk/openVR /I../vive/sdk /I../vive/source ../vive/source/utils.cpp -DGLEW_STATIC ../vive/sdk/GL/glew.c ../vive/sdk/openVR/openvr_api.lib
+MJVIVE=/I../vive/sdk/openVR /I../vive/sdk /I../vive/source -DGLEW_STATIC ../vive/sdk/GL/glew.c ../vive/sdk/openVR/openvr_api.lib
 CGLOVE=/I$(GLOVE_PATH)/source $(GLOVE_PATH)/source/CyberGlove.cpp $(GLOVE_PATH)/source/CyberGlove_utils.cpp
 
 all:

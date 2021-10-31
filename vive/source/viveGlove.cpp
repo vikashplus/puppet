@@ -12,6 +12,7 @@
 #include "stdlib.h"
 #include <string>
 #include <stdio.h>
+#include <iostream>
 
 #include "GL/glew.h"
 #include "glfw3.h"
@@ -22,12 +23,13 @@ using namespace vr;
 #include <windows.h>
 #include "CyberGlove_utils.h"	// cyberGlove
 #elif defined(__unix__)
+#include <sw/redis++/redis++.h>
 #include <cstring>
 #include <unistd.h>
 #include <math.h>
 #include <stdlib.h>
-#include "utils.h"
 #endif
+#include "utils.h"
 
 cgOption* opt;                  // cyber glove options
 
@@ -1210,7 +1212,7 @@ void qpos_from_site_pose_via_mocap(mjModel* m,
                         int max_steps=5
                         )
 {
-    if(!init_flag_mocap)
+    if(!init_flag_mocap && (strcmp(opt->ik_body_name, "none")!=0))
     {
         init_flag_mocap = true;
         // create model and data for IK
@@ -1336,28 +1338,68 @@ void physics(bool& run)
 {
     printf("Physics thread started\n");
 
+#ifdef __unix // Real robot communication
+    auto redis = sw::redis::Redis("tcp://127.0.0.1:6379");
+    double robostate[]{0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+    double robocmd[]{0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+    char robocmd_bytes[sizeof robocmd];
+#endif
+
     double stepBeginTimeStamp = glfwGetTime();
     double stepDuration = 0.0;
     double stepLeft = 0.0;
     mjtNum* IK_qpos = (mjtNum*) mju_malloc(sizeof(mjtNum) * m->nq);
+
+    //reset_request = true; // reset on start to sync robot position
     while(run)
     {
-        // process reset:: resets the scene and clearns controller states
+        // process reset:: resets the scene and clears controller states
         if(reset_request)
         {
-            if(strcmp(opt->ik_body_name, "none")!=0)
+            if(opt->use_real_robot)
             {
+#ifdef __unix__ // Reset sim to match real
+
+                // Reset model (m,d) to match real
+                sw::redis::OptionalString robostate_bytes_strview = redis.get("robostate");
+                memcpy(&robostate, (*robostate_bytes_strview).c_str(), sizeof robostate);
+
+                for(int i=0; i<7; ++i){
+                    d->qpos[i] = robostate[i];
+                    d->ctrl[i] = robostate[i]; // assumed to use positional ctrl
+                }
+                mj_forward(m, d);
+
+                // Reset mocap tracker to be at IK body
+                int ik_bid = mj_name2id(m, mjOBJ_BODY, opt->ik_body_name);
+                mju_copy3(d->mocap_pos, d->xpos+ik_bid*3);
+                mju_copy(d->mocap_quat, d->xquat+ik_bid*4, 4);
+
+                // Reset shadow model (d_mocap) to match real
                 if(m_mocap!=nullptr && d_mocap!=nullptr)
-                    resetMuJoCo(m_mocap, d_mocap); //reset the IK sim
-                mju_copy3(d->mocap_pos, d_mocap->mocap_pos);
-                mju_copy(d->mocap_quat, d_mocap->mocap_quat, 4);
-                mju_copy(d->ctrl, m->key_qpos, m->nu); // ???: Vik: only helpful for position control (usual for teleOP models)
+                {
+                    for(int i=0; i<7; ++i) d_mocap->qpos[i] = robostate[i];
+                    mj_forward(m_mocap, d_mocap);
+                    mju_copy3(d_mocap->mocap_pos, d_mocap->xpos+ik_bid*3);
+                    mju_copy(d_mocap->mocap_quat, d_mocap->xquat+ik_bid*4, 4);
+                }
+#endif
             }
             else
             {
-                resetMuJoCo(m, d);
+                if(strcmp(opt->ik_body_name, "none")!=0 && m_mocap!=nullptr && d_mocap!=nullptr)
+                {
+                    resetMuJoCo(m_mocap, d_mocap); //reset the IK sim
+                    mju_copy3(d->mocap_pos, d_mocap->mocap_pos);
+                    mju_copy(d->mocap_quat, d_mocap->mocap_quat, 4);
+                    mju_copy(d->ctrl, m->key_qpos, m->nu); // ???: Vik: only helpful for position control (usual for teleOP models)
+                }
+                else
+                {
+                    resetMuJoCo(m, d);
+                }
             }
-            init_flag_mocap = false;
+            // init_flag_mocap = false;
             trackMocap[0] = false;
             trackMocap[1] = false;
             reset_request = false;
@@ -1367,10 +1409,32 @@ void physics(bool& run)
         // begin step
         stepBeginTimeStamp = glfwGetTime();
 
+        int mj_step_counter = 0;
+
         // Refresh tracking data respecting skip
         // user_step+logging+mj_step are outside skip to maintain data/sim resolution.
-        if((int)(float)(d->time/m->opt.timestep)%opt->skip==0)
+        if(mj_step_counter % opt->skip == 0)
         {
+
+#ifdef __unix__
+            // periodically pull hardware data
+            if(init_flag_mocap && opt->use_real_robot && opt->refresh_freq != 0 && mj_step_counter % opt->refresh_freq == 0)
+            {
+                sw::redis::OptionalString robostate_bytes_strview = redis.get("robostate");
+                memcpy(&robostate, (*robostate_bytes_strview).c_str(), sizeof robostate);
+
+                for(int i=0; i<7; ++i)
+                    d_mocap->qpos[i] = robostate[i];
+                mj_forward(m_mocap, d_mocap);
+
+                for(int i=0; i<7; ++i)
+                    d->qpos[i] = robostate[i];
+                mj_forward(m, d);
+                //mju_copy(d->qpos, robostate , 7)
+                // TODO:vel mju_copy(d->qvel,)
+            }
+#endif
+
             // apply controller perturbations
             mju_zero(d->xfrc_applied, 6*m->nbody);
             for( int n=0; n<2; n++ )
@@ -1414,6 +1478,19 @@ void physics(bool& run)
 
         // simulate
         mj_step(m, d);
+
+
+#ifdef __unix__
+        // periodically send command to the real robot
+        if(mj_step_counter % opt->cmd_freq == 0 && opt->use_real_robot)
+        {
+            for(int i=0; i<7; ++i) robocmd[i] = d->qpos[i];
+            memcpy(robocmd_bytes, &robocmd, sizeof robocmd);    // send data
+            redis.set("robocmd", sw::redis::StringView(robocmd_bytes, sizeof robocmd));
+        }
+#endif
+
+        mj_step_counter += 1;
 
         // real time sync
         stepDuration = glfwGetTime() - stepBeginTimeStamp;

@@ -13,8 +13,7 @@ Vive headset and a minimum of one active controller. Optional equipments include
 7. Launch `x64 Native Tools Command Prompt` from Win start menu. This is a building tool installed by Visual Studio C++ dev toolkit.
 8. Type `SET MUJOCOPATH` to verify that the path is correctly set.
 9. Move to the `puppet/build` folder
-10. Rename `makefileWin` to `makefile`.
-10. Type `nmake` to build and install the project. It will compile two programs `puppet.exe` and `playlog.exe`.
+10. Type `nmake /F makefileWin` to build and install the project. It will compile two programs `puppet.exe` and `playlog.exe`.
 11. Use `nmake clean` if you need to clean the project installation. Note it doesn't clear recorded logs.
 12. Launch `puppet.exe` and try `humanoid.xml` for example.
 
@@ -38,7 +37,7 @@ Vive headset and a minimum of one active controller. Optional equipments include
 4. On Linux Build branch, edit `build/makefileLinux`
     - `MJ_PATH`
     - `PUPPET_PATH`
-5. `cd puppet/build`, `mv makefileLinux makefile`, `make`. This will create puppet and playlog executable. If you prefer to avoid renaming, use `make -f makefileLinux`.
+5. `cd puppet/build`, `make -f makefileLinux`.
 6. `ldd puppet` to ensure all libraries for puppet are found
 7. puppet will call `~/.local/share/Steam/steamapps/common/SteamVR/bin/linux64/vrmonitor`. When you run puppet for the first time you will likely see many errors, caused by this vrmonitor failing to find libraries. Some fixes:
     - Cannot find libsteam-api.so. `export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/user/.local/share/Steam/steamapps/common/SteamVR/bin/linux64/`

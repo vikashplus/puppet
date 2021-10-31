@@ -33,16 +33,20 @@
 		// Mujoco
 		char* viz_ip = "128.208.4.243";
 		int skip = 1;				// update teleOP every skip steps(1: updates tracking every mj_step)
-		bool useIkAsPosCmd = false; // instead of snap the robot to the solved IK, send IK as position cmd
 
 		// Inverse Kinematics
-		char* ik_body_name = "none"; // body to use for IK
+		char* ik_body_name = "panda0_link7"; // body to use for IK
 		int ik_pos_tolerance = .001; // pos tolerance for IK
 		int ik_max_steps = 1;	     // max mjstep for IK
 
 		// feedback
 		char* DOChan = "Dev2/port0/line0:7";
 		int pulseWidth = 20; // width of feedback pulse in ms;
+
+		// real robot
+		bool use_real_robot = true; // no windows support for real robot, need to build redis.
+		int cmd_freq = 5; 			// Send command every 5 mj steps. (100Hz)
+		int refresh_freq = 0;		// Pull real robot states onto sim every _ mjsteps.
 
 	}cgOption;
 

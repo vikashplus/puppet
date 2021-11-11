@@ -28,6 +28,7 @@ using namespace vr;
 #include <unistd.h>
 #include <math.h>
 #include <stdlib.h>
+sw::redis::Redis* redis_ptr;
 #endif
 #include "utils.h"
 
@@ -677,6 +678,10 @@ void v_update(void)
                 else if( button==vBUTTON_MENU )
                 {
                     ctl[n].tool = (ctl[n].tool + 1) % vNTOOL;
+                    if( ctl[n].tool == vTOOL_PULL )
+                    {
+                        redis_ptr->set("franka-cmd", "t");
+                    }
                     ctl[n].messageduration = 1;
                     ctl[n].messagestart = glfwGetTime();
                     strcpy(ctl[n].message, toolName[ctl[n].tool]);
@@ -708,6 +713,7 @@ void v_update(void)
 					// Left button reset the scene
                     if(ctl[n].padpos[0]<-0.5 && abs(ctl[n].padpos[1]<0.5))
                     {
+						redis_ptr->set("franka-cmd", "/"); // RESET THE ROBOT
 						reset_request = true;
 						sprintf(ctl[n].message, "Reset");
 						printf("Reset, trackMocap0: %d, trackMocap0: %d\n", (int)trackMocap[0], (int)trackMocap[1]);
@@ -1339,9 +1345,8 @@ void physics(bool& run)
     printf("Physics thread started\n");
 
 #ifdef __unix // Real robot communication
-    auto redis = sw::redis::Redis("tcp://127.0.0.1:6379");
-    double robostate[]{0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
-    double robocmd[]{0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+    double robostate[]{0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
+    double robocmd[]{0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
     char robocmd_bytes[sizeof robocmd];
 #endif
 
@@ -1361,27 +1366,40 @@ void physics(bool& run)
 #ifdef __unix__ // Reset sim to match real
 
                 // Reset model (m,d) to match real
-                sw::redis::OptionalString robostate_bytes_strview = redis.get("robostate");
+                sw::redis::OptionalString robostate_bytes_strview = redis_ptr->get("robostate");
                 memcpy(&robostate, (*robostate_bytes_strview).c_str(), sizeof robostate);
 
-                for(int i=0; i<7; ++i){
+                for(int i=0; i<7; ++i)
+                {
                     d->qpos[i] = robostate[i];
-                    d->ctrl[i] = robostate[i]; // assumed to use positional ctrl
+                    //d->ctrl[i] = robostate[i]; // assumed to use positional ctrl
+                    // TODO: debug
                 }
+                d->qpos[7] = robostate[7] / 2;
+                d->qpos[8] = robostate[8] / 2;
                 mj_forward(m, d);
 
-                // Reset mocap tracker to be at IK body
-                int ik_bid = mj_name2id(m, mjOBJ_BODY, opt->ik_body_name);
-                mju_copy3(d->mocap_pos, d->xpos+ik_bid*3);
-                mju_copy(d->mocap_quat, d->xquat+ik_bid*4, 4);
-
-                // Reset shadow model (d_mocap) to match real
-                if(m_mocap!=nullptr && d_mocap!=nullptr)
+                if(strcmp(opt->ik_body_name, "none")==0)
                 {
-                    for(int i=0; i<7; ++i) d_mocap->qpos[i] = robostate[i];
-                    mj_forward(m_mocap, d_mocap);
-                    mju_copy3(d_mocap->mocap_pos, d_mocap->xpos+ik_bid*3);
-                    mju_copy(d_mocap->mocap_quat, d_mocap->xquat+ik_bid*4, 4);
+                    int ik_bid = mj_name2id(m, mjOBJ_BODY, "panda0_link7"); // TODO: don't hard code
+                    mju_copy3(d->mocap_pos, d->xpos+ik_bid*3);
+                    mju_copy(d->mocap_quat, d->xquat+ik_bid*4, 4);
+                }
+                else
+                {
+                    // Reset mocap tracker to be at IK body
+                    int ik_bid = mj_name2id(m, mjOBJ_BODY, opt->ik_body_name);
+                    mju_copy3(d->mocap_pos, d->xpos+ik_bid*3);
+                    mju_copy(d->mocap_quat, d->xquat+ik_bid*4, 4);
+
+                    // Reset shadow model (d_mocap) to match real
+                    if(init_flag_mocap && m_mocap!=nullptr && d_mocap!=nullptr)
+                    {
+                        for(int i=0; i<7; ++i) d_mocap->qpos[i] = robostate[i];
+                        mj_forward(m_mocap, d_mocap);
+                        mju_copy3(d_mocap->mocap_pos, d_mocap->xpos+ik_bid*3);
+                        mju_copy(d_mocap->mocap_quat, d_mocap->xquat+ik_bid*4, 4);
+                    }
                 }
 #endif
             }
@@ -1416,24 +1434,27 @@ void physics(bool& run)
         if(mj_step_counter % opt->skip == 0)
         {
 
-#ifdef __unix__
-            // periodically pull hardware data
-            if(init_flag_mocap && opt->use_real_robot && opt->refresh_freq != 0 && mj_step_counter % opt->refresh_freq == 0)
-            {
-                sw::redis::OptionalString robostate_bytes_strview = redis.get("robostate");
-                memcpy(&robostate, (*robostate_bytes_strview).c_str(), sizeof robostate);
+// #ifdef __unix__
+//             // periodically pull hardware data
+//             if(init_flag_mocap && opt->use_real_robot && opt->refresh_freq != 0 && mj_step_counter % opt->refresh_freq == 0)
+//             {
+//                 sw::redis::OptionalString robostate_bytes_strview = redis_ptr->get("robostate");
+//                 memcpy(&robostate, (*robostate_bytes_strview).c_str(), sizeof robostate);
 
-                for(int i=0; i<7; ++i)
-                    d_mocap->qpos[i] = robostate[i];
-                mj_forward(m_mocap, d_mocap);
+//                 //for(int i=0; i<7; ++i)
+//                 //    d_mocap->qpos[i] = robostate[i];
+//                 //mj_forward(m_mocap, d_mocap);
 
-                for(int i=0; i<7; ++i)
-                    d->qpos[i] = robostate[i];
-                mj_forward(m, d);
-                //mju_copy(d->qpos, robostate , 7)
-                // TODO:vel mju_copy(d->qvel,)
-            }
-#endif
+//                 for(int i=0; i<7; ++i)
+//                 {
+//                     d->qpos[i] = robostate[i];
+//                     d->ctrl[i] = robostate[i];
+//                 }
+//                 mj_forward(m, d);
+//                 //mju_copy(d->qpos, robostate , 7)
+//                 // TODO:vel mju_copy(d->qvel,)
+//             }
+// #endif
 
             // apply controller perturbations
             mju_zero(d->xfrc_applied, 6*m->nbody);
@@ -1484,9 +1505,18 @@ void physics(bool& run)
         // periodically send command to the real robot
         if(mj_step_counter % opt->cmd_freq == 0 && opt->use_real_robot)
         {
-            for(int i=0; i<7; ++i) robocmd[i] = d->qpos[i];
+            if(init_flag_mocap)
+            {
+                for(int i=0; i<7; ++i) robocmd[i] = d_mocap->qpos[i];
+                robocmd[7] = d_mocap->qpos[7] + d_mocap->qpos[8];
+            }
+            else
+            {
+                for(int i=0; i<7; ++i) robocmd[i] = d->qpos[i];
+                robocmd[7] = d->qpos[7] + d->qpos[8];
+            }
             memcpy(robocmd_bytes, &robocmd, sizeof robocmd);    // send data
-            redis.set("robocmd", sw::redis::StringView(robocmd_bytes, sizeof robocmd));
+            redis_ptr->set("robocmd", sw::redis::StringView(robocmd_bytes, sizeof robocmd));
         }
 #endif
 
@@ -1563,6 +1593,12 @@ int main(int argc, char** argv)
 
 	// configure devices
 	init_devices();
+
+    // configure Redis
+#ifdef __unix__
+	sw::redis::Redis redis_store = sw::redis::Redis("tcp://127.0.0.1:6379");
+	redis_ptr = &redis_store;
+#endif
 
     // main loop
     bool run = true;

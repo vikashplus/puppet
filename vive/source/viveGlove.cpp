@@ -680,29 +680,42 @@ void v_update(void)
                     ctl[n].tool = (ctl[n].tool + 1) % vNTOOL;
                     if( ctl[n].tool == vTOOL_PULL )
                     {
+                        trackMocap[n] = true;
                         redis_ptr->set("franka-cmd", "t");
+                    }
+                    else
+                    {
+                        redis_ptr->set("franka-cmd", "l");
                     }
                     ctl[n].messageduration = 1;
                     ctl[n].messagestart = glfwGetTime();
                     strcpy(ctl[n].message, toolName[ctl[n].tool]);
                 }
 
-                // pad button: change selections for move tool and show message
-                else if( button==vBUTTON_PAD && ctl[n].tool!=vTOOL_MOVE )
+                else if( button==vBUTTON_PAD && ctl[n].tool==vTOOL_PULL)
                 {
-                    if( ctl[n].padpos[1]>0.75)
-                        ctl[n].body = mjMAX(0, ctl[n].body-1);
-                    else if( ctl[n].padpos[1]<-.75)
-                        ctl[n].body = mjMIN(m->nbody-1, ctl[n].body+1);
-
-                    ctl[n].messageduration = 1;
-                    ctl[n].messagestart = glfwGetTime();
-                    const char* name = mj_id2name(m, mjOBJ_BODY, ctl[n].body);
-                    if( name )
-                        sprintf(ctl[n].message, "body '%s'", name);
-                    else
-                        sprintf(ctl[n].message, "body %d", ctl[n].body);
+                    if(ctl[n].padpos[0]>0.5 && abs(ctl[n].padpos[1]<0.5))
+                    {
+						redis_ptr->set("franka-cmd", "l");
+					}
                 }
+
+                // // pad button: change selections for move tool and show message
+                // else if( button==vBUTTON_PAD && ctl[n].tool!=vTOOL_MOVE )
+                // {
+                //     if( ctl[n].padpos[1]>0.75)
+                //         ctl[n].body = mjMAX(0, ctl[n].body-1);
+                //     else if( ctl[n].padpos[1]<-.75)
+                //         ctl[n].body = mjMIN(m->nbody-1, ctl[n].body+1);
+
+                //     ctl[n].messageduration = 1;
+                //     ctl[n].messagestart = glfwGetTime();
+                //     const char* name = mj_id2name(m, mjOBJ_BODY, ctl[n].body);
+                //     if( name )
+                //         sprintf(ctl[n].message, "body '%s'", name);
+                //     else
+                //         sprintf(ctl[n].message, "body %d", ctl[n].body);
+                // }
 
 				// pad button: change selection for pull tool and show message
                 else if( button==vBUTTON_PAD && ctl[n].tool!=vTOOL_PULL )
@@ -1517,6 +1530,8 @@ void physics(bool& run)
             }
             memcpy(robocmd_bytes, &robocmd, sizeof robocmd);    // send data
             redis_ptr->set("robocmd", sw::redis::StringView(robocmd_bytes, sizeof robocmd));
+            //if (mj_step_counter % 50 == 0)
+            //    printf("%.2f \t %.2f \t %.2f \t %.2f\n", robocmd[3], robocmd[4], robocmd[5], robocmd[6]);
         }
 #endif
 

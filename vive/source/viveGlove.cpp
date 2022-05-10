@@ -12,6 +12,7 @@
 #include "stdlib.h"
 #include <string>
 #include <stdio.h>
+#include <iostream>
 
 #include "GL/glew.h"
 #include "glfw3.h"
@@ -1033,6 +1034,7 @@ void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
         time_t now = time(0);
         strftime(logTimestr, sizeof(name), "%Y_%m_%d_%H_%M_%S", localtime(&now));
         sprintf(name, "%s_%s.mjl", filename, logTimestr);
+        printf("Writing logs to: %s\n", name);
         logfile = fopen(name,"wb");
         if (logfile == NULL)
         {
@@ -1230,13 +1232,14 @@ void qpos_from_site_pose_via_mocap(mjModel* m,
 
         // find IK_body
         int ik_bid = mj_name2id(m_mocap, mjOBJ_BODY, opt->ik_body_name);
-        if(vive_controller_bid==-1)
+        if(ik_bid==-1)
             mju_error_s("Provided ik_body_name (%s) not found", opt->ik_body_name);
 
         // Set up the IK equality constraints with the mocap and the IK body
         for (int ieq=0; ieq<m_mocap->neq; ieq++)
         {
-            if(m_mocap->eq_type[ieq]==mjEQ_WELD)
+            // printf("mjtEq Enum: %d, %d, %d, %d, %d\n", mjtEq::mjEQ_CONNECT, mjtEq::mjEQ_WELD, mjtEq::mjEQ_JOINT, mjtEq::mjEQ_TENDON,mjtEq::mjEQ_DISTANCE);
+            if(m_mocap->eq_type[ieq]==mjtEq::mjEQ_WELD)
             {
                 bool ik_equality_refresh = false;
 
@@ -1260,7 +1263,6 @@ void qpos_from_site_pose_via_mocap(mjModel* m,
                     mju_copy(m_mocap->body_quat+4*mocap_id, d->xquat+4*ik_bid, 4);
                     mju_zero(m_mocap->eq_data+mjNEQDATA*ieq, mjNEQDATA);
                     m_mocap->eq_data[mjNEQDATA*ieq+3] = 1; // [0 0 0 1 0 0 0]
-
                 }
             }
         }
@@ -1348,7 +1350,10 @@ void physics(bool& run)
             if(strcmp(opt->ik_body_name, "none")!=0)
             {
                 if(m_mocap!=nullptr && d_mocap!=nullptr)
+                {
                     resetMuJoCo(m_mocap, d_mocap); //reset the IK sim
+                }
+                resetMuJoCo(m, d);
                 mju_copy3(d->mocap_pos, d_mocap->mocap_pos);
                 mju_copy(d->mocap_quat, d_mocap->mocap_quat, 4);
                 mju_copy(d->ctrl, m->key_qpos, m->nu); // ???: Vik: only helpful for position control (usual for teleOP models)

@@ -41,7 +41,7 @@ static void uniformDist(RealType* data, double min, double max, size_t count)
         data[i] = min + (max - min)*distribution(generator);
 }
 
-// process event. Return true is the event is active
+// process event. Return true if the event is active
 bool user_event(mjModel *m, mjData *d, int event_id, double* prms)
 {
     int skip = prms != nullptr ? prms[0] : 0;

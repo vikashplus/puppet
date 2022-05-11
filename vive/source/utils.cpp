@@ -81,13 +81,13 @@ void util_free(void* ptr)
 // Open file with specified path (else locally)
 FILE* util_fopen(const char* fileName, const char* mode)
 {
-	FILE* fp;
+	FILE* fp=NULL;
 	char errmsg[300];
 	int i=0;
 	#ifdef _WINDOWS_
 		fopen_s(&fp, fileName, mode);
 	#else
-		fopen(fileName, mode);
+		fp = fopen(fileName, mode);
 	#endif
 	if(fp)
 		return fp;
@@ -101,7 +101,7 @@ FILE* util_fopen(const char* fileName, const char* mode)
 	#ifdef _WINDOWS_
 		fopen_s(&fp, fileName, mode);
 	#else
-		fopen(fileName, mode);
+		fp = fopen(fileName, mode);
 	#endif
 	}
 	if(fp)
@@ -174,7 +174,7 @@ int util_config(const char *fileName, const char *iname, void *var)
     {
 		lineCnt++;
 		// remove comments
-		if( (line[0]=='/') && (line[0]=='/') )
+		if( (line[0]=='/') && (line[1]=='/') )
 			continue;
 
 		// remove inline comments
@@ -187,11 +187,11 @@ int util_config(const char *fileName, const char *iname, void *var)
 			line[q1]=0;
 		}
 
-	#ifdef _WINDOWS_
-		strcpy_s(lineRaw, maxInputSz, line);
-	#else
-		strcpy(lineRaw, line);
-	#endif
+		#ifdef _WINDOWS_
+			strcpy_s(lineRaw, maxInputSz, line);
+		#else
+			strcpy(lineRaw, line);
+		#endif
 
 
 		if(q1==-1)

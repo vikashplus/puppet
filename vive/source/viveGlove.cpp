@@ -8,20 +8,29 @@
 // The above copyright notice and this permission notice shall be included in all copies of the software.
 ================================================================= */
 
-
 #include "mujoco.h"
-#include "stdio.h"
 #include "stdlib.h"
 #include <string>
+#include <stdio.h>
+#include <iostream>
 
 #include "GL/glew.h"
 #include "glfw3.h"
-#include <windows.h>
 #include <openvr.h>
 using namespace vr;
 
-#include "cyberGlove_utils.h"	// cyberGlove
-cgOption* opt;					// cyber glove options
+#if defined(_WIN32)
+#include <windows.h>
+#include "CyberGlove_utils.h"	// cyberGlove
+#elif defined(__unix__)
+#include <cstring>
+#include <unistd.h>
+#include <math.h>
+#include <stdlib.h>
+#include "utils.h"
+#endif
+
+cgOption* opt;                  // cyber glove options
 
 //-------------------------------- MuJoCo global data -----------------------------------
 
@@ -43,7 +52,7 @@ bool reset_request = false;
 //-------------------------------- MuJoCo functions -------------------------------------
 
 // reset scene
-void resetMuJoCo()
+void resetMuJoCo(mjModel* m, mjData* d)
 {
     if(m->nkey>0)
         mj_resetDataKeyframe(m, d, 0); // defaults to first key, if found
@@ -56,7 +65,7 @@ void resetMuJoCo()
 int initMuJoCo(const char* filename, int width2, int height)
 {
 	printf("%s\n", filename);
-    
+
 	// init GLFW
     if( !glfwInit() )
     {
@@ -83,7 +92,11 @@ int initMuJoCo(const char* filename, int width2, int height)
 		printf("WARNING:: Environment variable 'MUJOCOPATH' not found. Defaulting to the local folder\n");
 	else
 		(std::string(mujocoPath));
-	sprintf(licensePath, "%s\\mjkey.txt", mujocoPath);
+#if defined(__unix__)
+	sprintf(licensePath, "%smjkey.txt", mujocoPath);
+#elif defined(_WIN32)
+    sprintf(licensePath, "%s\\mjkey.txt", mujocoPath);
+#endif
 
     // activate
 	if(!mj_activate(licensePath))
@@ -103,7 +116,7 @@ int initMuJoCo(const char* filename, int width2, int height)
 
     // make data, run one computation to initialize all fields
     d = mj_makeData(m);
-	resetMuJoCo();
+    resetMuJoCo(m, d);
 
     // set offscreen buffer size to match HMD
     m->vis.global.offwidth = width2;
@@ -127,7 +140,7 @@ int initMuJoCo(const char* filename, int width2, int height)
 
     // stereo mode
     scn.stereo = mjSTEREO_SIDEBYSIDE;
-    
+
 	return 1;
 }
 
@@ -362,7 +375,7 @@ void v_initPre(void)
 
         // found HMD
         if( cls==TrackedDeviceClass_HMD )
-		{	
+		{
 			printf("Headset (id:%d) found\n", n);
 			hmd.id = n;
 		}
@@ -417,7 +430,7 @@ void v_initPre(void)
             for( i=0; i<k_unControllerStateAxisCount; i++ )
             {
                 // get property
-                int prop = hmd.system->GetInt32TrackedDeviceProperty(ctl[n].id, 
+                int prop = hmd.system->GetInt32TrackedDeviceProperty(ctl[n].id,
                     (ETrackedDeviceProperty)(Prop_Axis0Type_Int32 + i));
 
                 // assign id if matching
@@ -428,7 +441,7 @@ void v_initPre(void)
             }
 
             // make sure all ids were found
-            if( (ctl[n].device==vDEVICE_CONTROLLER) && 
+            if( (ctl[n].device==vDEVICE_CONTROLLER) &&
                 (ctl[n].idtrigger<0 || ctl[n].idpad<0) )
                 mju_error("Trigger or Pad axis not found");
 
@@ -558,8 +571,8 @@ void v_update(void)
         // assign position, apply eye-to-head offset
         for( i=0; i<3; i++ )
             scn.camera[n].pos[i] = hmd.roompos[i] +
-                hmd.eyeoffset[n][0]*hmd.roommat[3*i+0] + 
-                hmd.eyeoffset[n][1]*hmd.roommat[3*i+1] + 
+                hmd.eyeoffset[n][0]*hmd.roommat[3*i+0] +
+                hmd.eyeoffset[n][1]*hmd.roommat[3*i+1] +
                 hmd.eyeoffset[n][2]*hmd.roommat[3*i+2];
 
         // assign forward and up
@@ -609,7 +622,7 @@ void v_update(void)
                 n = 1;
             else
                 continue;
-            
+
             // get button
             int button = vBUTTON_TRIGGER;
             switch( evt.data.controller.button )
@@ -690,7 +703,7 @@ void v_update(void)
                 {
 					ctl[n].messageduration = 1;
                     ctl[n].messagestart = glfwGetTime();
-					
+
 					// Left button reset the scene
                     if(ctl[n].padpos[0]<-0.5 && abs(ctl[n].padpos[1]<0.5))
                     {
@@ -706,14 +719,14 @@ void v_update(void)
 						printf("Savelogs: %d\n", (int)saveLogs);
 					}
 					// down button: Toggle trackMocap0
-                    else if(abs(ctl[n].padpos[0])<0.5 && ctl[n].padpos[1]<-.5)
+                    else if(std::abs(ctl[n].padpos[0])<0.5 && ctl[n].padpos[1]<-.5)
                     {
 						trackMocap[0] = !trackMocap[0];
 						sprintf(ctl[n].message, "trackMocap0: %d\n", (int)trackMocap[0]);
 						printf("trackMocap0: %d\n", (int)trackMocap[0]);
 					}
 					// up button: Toggle trackMocap1
-                    else if(abs(ctl[n].padpos[0])<0.5 && ctl[n].padpos[1]>0.5)
+                    else if(std::abs(ctl[n].padpos[0])<0.5 && ctl[n].padpos[1]>0.5)
                     {
 						trackMocap[1] = !trackMocap[1];
 						sprintf(ctl[n].message, "trackMocap1: %d\n", (int)trackMocap[1]);
@@ -771,7 +784,7 @@ void v_update(void)
         {
 			// record relative pose
 			if((!trackMocap[n]) && !ctl[n].hold[vBUTTON_TRIGGER])
-			{				
+			{
 				mjtNum negp[3], negq[4], xiquat[4];
 				mju_mulQuat(xiquat, d->xquat + 4 * ctl[n].body, m->body_iquat + 4 * ctl[n].body);
 				mju_negPose(negp, negq, ctl[n].pos, ctl[n].quat);
@@ -780,7 +793,7 @@ void v_update(void)
 
             // update target pose
             if( (ctl[n].hold[vBUTTON_TRIGGER] && ctl[n].tool!=vTOOL_MOVE ) || (trackMocap[n] && ctl[n].tool != vTOOL_MOVE) )
-			{    mju_mulPose(ctl[n].targetpos, ctl[n].targetquat, 
+			{    mju_mulPose(ctl[n].targetpos, ctl[n].targetquat,
                     ctl[n].pos, ctl[n].quat, ctl[n].relpos, ctl[n].relquat);
 			}
             else
@@ -823,7 +836,7 @@ void v_update(void)
             }
 
             // render connector for pull
-            if( scn.ngeom<scn.maxgeom && ctl[n].tool==vTOOL_PULL && 
+            if( scn.ngeom<scn.maxgeom && ctl[n].tool==vTOOL_PULL &&
                 ctl[n].body>0)// && ctl[n].hold[vBUTTON_TRIGGER] )
             {
                 mjtNum* p1 = ctl[n].targetpos;
@@ -855,12 +868,12 @@ void v_update(void)
             if( ctl[n].body>0 )
             {
                 // search all geoms
-                for( i=0; i<scn.ngeom; i++ )            
+                for( i=0; i<scn.ngeom; i++ )
                 {
                     g = scn.geoms + i;
 
                     // detect geoms belonging to selected body
-                    if( g->category==mjCAT_DYNAMIC && g->objtype==mjOBJ_GEOM && 
+                    if( g->category==mjCAT_DYNAMIC && g->objtype==mjOBJ_GEOM &&
                         m->geom_bodyid[g->objid]==ctl[n].body )
                     {
                         // common selection
@@ -885,7 +898,7 @@ void v_update(void)
 
     // apply move and scale (other tools applied before mj_step)
     for( n=0; n<2; n++ )
-        if( ctl[n].id>=0 && ctl[n].valid && 
+        if( ctl[n].id>=0 && ctl[n].valid &&
             ctl[n].tool==vTOOL_MOVE && ctl[n].hold[vBUTTON_TRIGGER] )
         {
             // apply scaling and reset
@@ -930,7 +943,7 @@ void v_update(void)
             float sa = (float)mju_sin(vel[1]);
             scn.translate[0] = ctl[n].roompos[0] + dx*ca + dz*sa;
             scn.translate[2] = ctl[n].roompos[2] - dx*sa + dz*ca;
-            
+
             // reset rotation
             for( i=0; i<9; i++ )
                 ctl[n].oldroommat[i] = ctl[n].roommat[i];
@@ -1020,7 +1033,8 @@ void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
         char name[100];
         time_t now = time(0);
         strftime(logTimestr, sizeof(name), "%Y_%m_%d_%H_%M_%S", localtime(&now));
-        sprintf(name, "%s_%s.log", filename, logTimestr);
+        sprintf(name, "%s_%s.mjl", filename, logTimestr);
+        printf("Writing logs to: %s\n", name);
         logfile = fopen(name,"wb");
         if (logfile == NULL)
         {
@@ -1050,7 +1064,7 @@ void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
 
 	// close if requested
 	if(closeFile)
-	{	
+	{
         if(logfile!=nullptr)
 			fclose(logfile);
 
@@ -1063,7 +1077,7 @@ void write_logs(mjModel* m, mjData* d, char* filename, bool closeFile=false)
 	}
 
     // prepare float buffer
-    
+
     writebuf[0] = (float)d->time;
     int wpos = 1;
     wpos += num2float(writebuf + wpos, d->qpos, m->nq);
@@ -1083,8 +1097,8 @@ void init_devices()
 {
 	int controller = mj_name2id(m, mjOBJ_BODY, "vive_controller");
 	int tracker = mj_name2id(m, mjOBJ_BODY, "vive_tracker");
-	
-	
+
+
 	if(controller != -1)
 		for(int i=0; i<2; i++)
 			if (ctl[i].device == vDEVICE_CONTROLLER)
@@ -1112,7 +1126,7 @@ void user_perturbations(int ctl_n)
 		int rGripper = mj_name2id(m, mjOBJ_ACTUATOR, "r_gripper_finger_joint");
 		int lGripper = mj_name2id(m, mjOBJ_ACTUATOR, "l_gripper_finger_joint");
 		// engage only if both are found
-		if((rGripper!=-1)&&(lGripper!=-1)) 
+		if((rGripper!=-1)&&(lGripper!=-1))
 		{
 			const double scale = 1.0;
 			d->ctrl[rGripper] = m->actuator_ctrlrange[2 * rGripper] + scale*(1.0 - ctl[ctl_n].triggerpos)*
@@ -1120,14 +1134,14 @@ void user_perturbations(int ctl_n)
 			d->ctrl[lGripper] = m->actuator_ctrlrange[2 * lGripper] + scale*(1.0 - ctl[ctl_n].triggerpos)*
 				(m->actuator_ctrlrange[2 * lGripper + 1] - m->actuator_ctrlrange[2 * lGripper]);
 		}
-		
+
 
 		// Control gripper if barrett hand
 		int F1_act = mj_name2id(m, mjOBJ_ACTUATOR, "F1_act");
 		int F2_act = mj_name2id(m, mjOBJ_ACTUATOR, "F2_act");
 		int F3_act = mj_name2id(m, mjOBJ_ACTUATOR, "F3_act");
 		// engage only if all are found
-		if((F1_act!=-1)&&(F2_act!=-1)&&(F3_act!=-1)) 
+		if((F1_act!=-1)&&(F2_act!=-1)&&(F3_act!=-1))
 		{
 			const double scale = 1.0;
 			d->ctrl[F1_act] = m->actuator_ctrlrange[2 * F1_act] + scale*(ctl[ctl_n].triggerpos)*
@@ -1143,7 +1157,7 @@ void user_perturbations(int ctl_n)
 		rGripper = mj_name2id(m, mjOBJ_ACTUATOR, "FINGER_JOINT_1");
 		lGripper = mj_name2id(m, mjOBJ_ACTUATOR, "FINGER_JOINT_2");
 		// engage only if both are found
-		if((rGripper!=-1)&&(lGripper!=-1)) 
+		if((rGripper!=-1)&&(lGripper!=-1))
 		{
 			const double scale = 1.0;
 			d->ctrl[rGripper] = m->actuator_ctrlrange[2 * rGripper] + scale*(ctl[ctl_n].triggerpos)*
@@ -1178,8 +1192,143 @@ void closenclear()
     closeMuJoCo();
     glfwTerminate();
 
-	if(opt->USEGLOVE)
-		cGlove_clean(NULL);
+#ifdef _WIN32
+    if(opt->USEGLOVE)
+        cGlove_clean(NULL);
+#endif
+}
+
+mjModel* m_mocap=nullptr;
+mjData* d_mocap=nullptr;
+bool init_flag_mocap = false;
+void qpos_from_site_pose_via_mocap(mjModel* m,
+                        mjData* d,
+                        mjtNum* qpos,
+                        char* site_name,
+                        mjtNum* target_pos,
+                        mjtNum* target_quat,
+                        mjvPerturb* pert,
+                        mjtNum tol=0.010,
+                        int max_steps=5
+                        )
+{
+    if(!init_flag_mocap)
+    {
+        init_flag_mocap = true;
+        // create model and data for IK
+        m_mocap = mj_copyModel(NULL, m);
+        d_mocap = mj_makeData(m_mocap);
+        mj_copyData(d_mocap, m_mocap, d);
+        printf("copying new data\n");
+
+        // remove actuators from model
+        mju_zero(m_mocap->actuator_gainprm, m_mocap->nu*mjNGAIN);
+        mju_zero(m_mocap->actuator_biasprm, m_mocap->nu*mjNBIAS);
+
+        // find controller body
+        int vive_controller_bid = mj_name2id(m_mocap, mjOBJ_BODY, "vive_controller");
+        if(vive_controller_bid==-1)
+            mju_error("vive_controller body, needed to perform IK, not found.");
+
+        // find IK_body
+        int ik_bid = mj_name2id(m_mocap, mjOBJ_BODY, opt->ik_body_name);
+        if(ik_bid==-1)
+            mju_error_s("Provided ik_body_name (%s) not found", opt->ik_body_name);
+
+        // Set up the IK equality constraints with the mocap and the IK body
+        for (int ieq=0; ieq<m_mocap->neq; ieq++)
+        {
+            // printf("mjtEq Enum: %d, %d, %d, %d, %d\n", mjtEq::mjEQ_CONNECT, mjtEq::mjEQ_WELD, mjtEq::mjEQ_JOINT, mjtEq::mjEQ_TENDON,mjtEq::mjEQ_DISTANCE);
+            if(m_mocap->eq_type[ieq]==mjtEq::mjEQ_WELD)
+            {
+                bool ik_equality_refresh = false;
+
+                // add IK body to the constraints
+                if(m_mocap->eq_obj1id[ieq]==vive_controller_bid)
+                {   m_mocap->eq_obj2id[ieq] = ik_bid;
+                    ik_equality_refresh= true;
+                }
+                else if (m_mocap->eq_obj2id[ieq]==vive_controller_bid)
+                {   m_mocap->eq_obj1id[ieq] = ik_bid;
+                    ik_equality_refresh= true;
+                }
+
+                // reset the mocap to overlap with IK body
+                if(ik_equality_refresh)
+                {
+                    int mocap_id = m_mocap->body_mocapid[vive_controller_bid];
+                    if(mocap_id==-1)
+                        mju_error("vive_controller body doesn't appear to be a mocap body");
+                    mju_copy3(m_mocap->body_pos+3*mocap_id, d->xpos+3*ik_bid);
+                    mju_copy(m_mocap->body_quat+4*mocap_id, d->xquat+4*ik_bid, 4);
+                    mju_zero(m_mocap->eq_data+mjNEQDATA*ieq, mjNEQDATA);
+                    m_mocap->eq_data[mjNEQDATA*ieq+3] = 1; // [0 0 0 1 0 0 0]
+                }
+            }
+        }
+
+        // set rendering option
+        for(int jj=0; jj<m->ngeom; jj++)
+        {
+            m_mocap->geom_rgba[jj*4+0] = 0.5;
+            m_mocap->geom_rgba[jj*4+1] = 0.5;
+            m_mocap->geom_rgba[jj*4+2] = 0.5;
+            m_mocap->geom_rgba[jj*4+3] = 0.2;
+            m_mocap->geom_group[jj] = 5;
+        }
+
+        // disable collision
+        int ik_chain_geom_start = m_mocap->body_geomadr[m_mocap->body_rootid[ik_bid]];
+        int ik_chain_geom_end = m_mocap->body_geomadr[ik_bid]+m_mocap->body_geomnum[ik_bid];
+
+        for(int jj=0; jj<m_mocap->ngeom; jj++)
+        {
+            // preserve self collisions
+            if( (jj<ik_chain_geom_start) || (jj>ik_chain_geom_end) )
+            {
+                m_mocap->geom_conaffinity[jj] = 0;
+                m_mocap->geom_contype[jj] = 0;
+            }
+        }
+
+        // set lower the damping for mocap model for speed
+        for(int jj=0; jj<m->nv; jj++)
+            m_mocap->dof_damping[jj] *= .1;
+
+        // propagate changes
+        mj_forward(m_mocap, d_mocap);
+
+    }
+
+    // initialize variables
+    mjtNum site_xpos[3], err_pos[3];
+    int site_id = mj_name2id(m, mjOBJ_SITE, site_name);
+    int steps = 0;
+    bool success = false;
+    mjtNum err_norm = 0.0;
+
+    // apply
+    mjv_applyPerturbPose(m_mocap, d_mocap, pert, 0);
+    mjv_applyPerturbForce(m_mocap, d_mocap, pert);
+
+    // iterate for tracking via mocap constraints
+    for(steps=0; steps< max_steps; steps++)
+    {
+        // Translational error.
+        mju_copy3(site_xpos, d->site_xpos+3*site_id);
+        mju_sub3(err_pos, target_pos, site_xpos);
+        err_norm = mju_norm3(err_pos);
+
+        // Iterate
+        if (err_norm<tol)
+            break;
+        else
+            mj_step(m_mocap, d_mocap);
+    }
+
+    // results
+    mju_copy(qpos, d_mocap->qpos, m_mocap->nq);
+    // printf("err_norm=%2.4f, steps=%2d \n", err_norm, steps);
 }
 
 
@@ -1188,32 +1337,49 @@ void closenclear()
 void physics(bool& run)
 {
     printf("Physics thread started\n");
-    
-    double stepTimeStamp = glfwGetTime();
+
+    double stepBeginTimeStamp = glfwGetTime();
     double stepDuration = 0.0;
     double stepLeft = 0.0;
+    mjtNum* IK_qpos = (mjtNum*) mju_malloc(sizeof(mjtNum) * m->nq);
     while(run)
-    {   
+    {
         // process reset:: resets the scene and clearns controller states
         if(reset_request)
         {
-            resetMuJoCo();
+            if(strcmp(opt->ik_body_name, "none")!=0)
+            {
+                if(m_mocap!=nullptr && d_mocap!=nullptr)
+                {
+                    resetMuJoCo(m_mocap, d_mocap); //reset the IK sim
+                }
+                resetMuJoCo(m, d);
+                mju_copy3(d->mocap_pos, d_mocap->mocap_pos);
+                mju_copy(d->mocap_quat, d_mocap->mocap_quat, 4);
+                mju_copy(d->ctrl, m->key_qpos, m->nu); // ???: Vik: only helpful for position control (usual for teleOP models)
+            }
+            else
+            {
+                resetMuJoCo(m, d);
+            }
+            init_flag_mocap = false;
             trackMocap[0] = false;
             trackMocap[1] = false;
             reset_request = false;
+            printf("reset processed\n");
         }
-        
+
+        // begin step
+        stepBeginTimeStamp = glfwGetTime();
+
         // Refresh tracking data respecting skip
         // user_step+logging+mj_step are outside skip to maintain data/sim resolution.
         if((int)(float)(d->time/m->opt.timestep)%opt->skip==0)
         {
-            // begin step
-            stepTimeStamp = glfwGetTime();
-
             // apply controller perturbations
             mju_zero(d->xfrc_applied, 6*m->nbody);
             for( int n=0; n<2; n++ )
-                if( ctl[n].valid && ctl[n].tool==vTOOL_PULL && 
+                if( ctl[n].valid && ctl[n].tool==vTOOL_PULL &&
                     ctl[n].body>0 && (ctl[n].hold[vBUTTON_TRIGGER]||trackMocap[n]==true))
                 {
                     // perpare mjvPerturb object
@@ -1226,13 +1392,22 @@ void physics(bool& run)
                     mjv_applyPerturbPose(m, d, &pert, 0);
                     mjv_applyPerturbForce(m, d, &pert);
 
+                    // solve IK and map to actuators
+                    if(strcmp(opt->ik_body_name, "none")!=0)
+                    {
+                        qpos_from_site_pose_via_mocap(m, d, IK_qpos, "end_effector", ctl[n].targetpos,
+                            NULL, &pert, opt->ik_pos_tolerance, opt->ik_max_steps);
+                        mju_copy(d->ctrl, IK_qpos, m->nu);
+                    }
+
                     // Apply user custom perturbations (finger controls)
                     user_perturbations(n);
                 }
-            
+#ifdef _WIN32
             // get glove demands
             if(opt->USEGLOVE)
                 cGlove_getData(d->ctrl, m->nu);
+#endif
         }
 
         // user requests
@@ -1246,12 +1421,14 @@ void physics(bool& run)
         mj_step(m, d);
 
         // real time sync
-        stepDuration = glfwGetTime() - stepTimeStamp;
+        stepDuration = glfwGetTime() - stepBeginTimeStamp;
         stepLeft = 1000.0*(m->opt.timestep-stepDuration);
 
         if(stepLeft>=1.0)
             std::this_thread::sleep_for(std::chrono::milliseconds(int(stepLeft)));
     }
+    mju_free(IK_qpos);
+    IK_qpos = nullptr;
     printf("Physics thread exiting\n");
 }
 
@@ -1277,28 +1454,30 @@ int main(int argc, char** argv)
         scanf("%s", config_filename);
     }
 
-	if( strlen(config_filename)>4 && 
-		(!strcmp(config_filename+strlen(config_filename)-4, ".xml") || 
+	if( strlen(config_filename)>4 &&
+		(!strcmp(config_filename+strlen(config_filename)-4, ".xml") ||
 			!strcmp(config_filename+strlen(config_filename)-4, ".mjb") ) )
 	{
-		simple_option.modelFile = config_filename;
+        simple_option.modelFile = config_filename;
 		simple_option.logFile = log_filename;
 		simple_option.USEGLOVE = false;
 		opt = &simple_option;
 	}
-	else
-		opt = readOptions(config_filename);
-		
+    else
+        opt = readOptions(config_filename);
+
 	// init ----------------------------------------
-	if(opt->USEGLOVE)
-		cGlove_init(opt);
+#ifdef _WIN32
+    if(opt->USEGLOVE)
+        cGlove_init(opt);
+#endif
 
     // pre-initialize vr ----------------------------------
     v_initPre();
 
     // initialize MuJoCo, with image size from vr
     if( !initMuJoCo(opt->modelFile, (int)(2*hmd.width), (int)hmd.height) )
-	{	
+	{
 		closenclear();
 		printf("Error initializing MuJoCo\n");
 		return 0;
@@ -1312,7 +1491,7 @@ int main(int argc, char** argv)
 
 	// configure devices
 	init_devices();
-	
+
     // main loop
     bool run = true;
     std::thread ph_thread(physics, std::ref(run)); // pass by reference
@@ -1323,6 +1502,8 @@ int main(int argc, char** argv)
     {
         // create abstract scene
         mjv_updateScene(m, d, &vopt, NULL, NULL, mjCAT_ALL, &scn);
+        if(d_mocap!=nullptr)
+            mjv_addGeoms(m_mocap, d_mocap, &vopt, NULL, mjCAT_ALL, &scn);
 
         // update vr poses and controller states
         v_update();
@@ -1356,6 +1537,10 @@ int main(int argc, char** argv)
 	printf("Main:>\t Done\n");
 
 	closenclear();
-	Sleep(1000);
+#if defined(__unix__)
+    usleep(1000);
+#elif defined(_WIN32)
+    Sleep(1000);
+#endif
     return 1;
 }

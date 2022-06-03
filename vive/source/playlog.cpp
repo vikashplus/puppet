@@ -3,13 +3,14 @@
 //  Written by Emo Todorov         //
 //  Copyright (C) 2017 Roboti LLC  //
 //---------------------------------//
-
 #include "mujoco.h"
 #include "glfw3.h"
 #include "stdio.h"
 #include <string>
-
-
+#if defined(__unix__)
+#  include <stdio.h>
+#  include <cstring>
+#endif
 //-------------------------------- global variables -------------------------------------
 
 // model and data
@@ -53,12 +54,12 @@ bool button_right =  false;
 bool reposition = false;
 double lastx = 0;
 double lasty = 0;
-int needselect = 0;                 // 0: none; 2: center; 3: center and track 
+int needselect = 0;                 // 0: none; 2: center; 3: center and track
 double window2buffer = 1;           // framebuffersize / windowsize (for scaled video modes)
 double fontscale = 1.5;
 
 // help strings
-const char help_title[] = 
+const char help_title[] =
 "Help\n"
 "Option\n"
 "Info\n"
@@ -85,7 +86,7 @@ const char help_title[] =
 "Label";
 
 
-const char help_content[] = 
+const char help_content[] =
 "F1\n"
 "F2\n"
 "F3\n"
@@ -196,7 +197,11 @@ void initMuJoCo(const char* filename, const char* logfile)
 	}
 	else
 		(std::string(mujocoPath));
-	sprintf(licensePath, "%s\\mjkey.txt", mujocoPath);
+#if defined(__unix__)
+	sprintf(licensePath, "%smjkey.txt", mujocoPath);
+#elif defined(_WIN32)
+    sprintf(licensePath, "%s\\mjkey.txt", mujocoPath);
+#endif
 
 	if(!mj_activate(licensePath))
 		printf("ERROR:: Failed to activate license\n");
@@ -249,11 +254,18 @@ void initMuJoCo(const char* filename, const char* logfile)
     recsz = 1 + m->nq + m->nv + m->nu + 7*m->nmocap + m->nsensordata + m->nuserdata;
 
     // get remaining file size and number of records (Visual Studio)
-    //  on Posix use feeko, ftello, #define _FILE_OFFSET_BITS 64
+#if defined(__unix__)
+    #define _FILE_OFFSET_BITS 64
+    long long startpos = ftello(fp);
+    fseeko(fp, 0, SEEK_END);
+    long long filesz = ftello(fp) - startpos;
+    fseeko(fp, startpos, SEEK_SET);
+#elif defined(_WIN32)
     long long startpos = _ftelli64(fp);
     _fseeki64(fp, 0, SEEK_END);
     long long filesz = _ftelli64(fp) - startpos;
     _fseeki64(fp, startpos, SEEK_SET);
+#endif
     numrec = filesz/recsz/sizeof(float);
     if( numrec*recsz*sizeof(float)!=filesz )
         mju_error("Logfile size is not divisible by frame size");
@@ -547,7 +559,7 @@ void mouse_button(GLFWwindow* window, int button, int act, int mods)
         reposition = false;
 
     // detect double-click (250 msec)
-    if( act==GLFW_PRESS && glfwGetTime()-lastclicktm<0.25 && 
+    if( act==GLFW_PRESS && glfwGetTime()-lastclicktm<0.25 &&
         button==lastbutton && !reposition )
     {
         if( button_right )
@@ -738,7 +750,7 @@ static void UpdateSensor(void)
         }
 
         // update linepnt
-        figsensor.linepnt[lineid] = mjMIN(mjMAXLINEPNT-1, 
+        figsensor.linepnt[lineid] = mjMIN(mjMAXLINEPNT-1,
                                           figsensor.linepnt[lineid]+2*dim);
     }
 }
@@ -772,9 +784,9 @@ void render(GLFWwindow* window)
 
     // status
     sprintf(status, "%-20.4f\n%d (%d)\n%s\n%s\n%s",
-            d->time, 
-            d->nefc, 
-            d->ncon, 
+            d->time,
+            d->nefc,
+            d->ncon,
             camstr,
             mjFRAMESTRING[vopt.frame],
             mjLABELSTRING[vopt.label]);
@@ -799,10 +811,10 @@ void render(GLFWwindow* window)
         // find selected model geom and body
         mjtNum pos[3];
 		int selgeom;
-        int selbody = mjv_select(m, d, &vopt, 
-                                 (mjtNum)R.width/(mjtNum)R.height, 
-                                 (mjtNum)lastx/(mjtNum)R.width, 
-                                 (mjtNum)(R.height-lasty)/(mjtNum)R.height, 
+        int selbody = mjv_select(m, d, &vopt,
+                                 (mjtNum)R.width/(mjtNum)R.height,
+                                 (mjtNum)lastx/(mjtNum)R.width,
+                                 (mjtNum)(R.height-lasty)/(mjtNum)R.height,
                                  &scn, pos, &selgeom, NULL);
         //int selbody = (selgeom>=0 ? m->geom_bodyid[selgeom] : 0);
 
@@ -835,7 +847,7 @@ void render(GLFWwindow* window)
 
     // show info
     if( showinfo )
-        mjr_overlay(mjFONT_NORMAL, mjGRID_BOTTOMLEFT, rect, 
+        mjr_overlay(mjFONT_NORMAL, mjGRID_BOTTOMLEFT, rect,
                     "Time\nSize\nCamera\nFrame\nLabel", status, &con);
 
     // show options
@@ -901,13 +913,13 @@ void render(GLFWwindow* window)
     mjr_rectangle(rcursor, 1, 1, 1, .8);
 
     // swap buffers
-    glfwSwapBuffers(window); 
+    glfwSwapBuffers(window);
 }
 
 
 // main function ----------------------------------------
 
-// record 
+// record
 void record_view(char* videoName, bool terminate_recording = false)
 {
 	static bool initFlag = true;
@@ -952,7 +964,7 @@ void record_view(char* videoName, bool terminate_recording = false)
 
 	 // render scene in offscreen buffer
 	// mjr_render(viewport, &scn, &con);
-	// 
+	//
 	// // add time stamp in upper-left corner
 	// char stamp[50];
 	// sprintf(stamp, "Time = %.3f", d->time);
@@ -1069,9 +1081,9 @@ int main(int argc, const char** argv)
 		else
 			nstep = mjMAX(1, (int)((glfwGetTime()-lastrender)/m->opt.timestep));
 		lastrender = glfwGetTime();
-		
 
-		// advance frame:: keep realtime for playback/ maintain FPS when recording 
+
+		// advance frame:: keep realtime for playback/ maintain FPS when recording
 		if( !paused && !jumped && !reposition )
 		{
 			frame = mjMIN(frame+nstep, numrec-1);

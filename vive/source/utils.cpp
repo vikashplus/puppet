@@ -81,13 +81,13 @@ void util_free(void* ptr)
 // Open file with specified path (else locally)
 FILE* util_fopen(const char* fileName, const char* mode)
 {
-	FILE* fp;
+	FILE* fp=NULL;
 	char errmsg[300];
 	int i=0;
 	#ifdef _WINDOWS_
 		fopen_s(&fp, fileName, mode);
 	#else
-		fopen(fileName, mode);
+		fp = fopen(fileName, mode);
 	#endif
 	if(fp)
 		return fp;
@@ -101,7 +101,7 @@ FILE* util_fopen(const char* fileName, const char* mode)
 	#ifdef _WINDOWS_
 		fopen_s(&fp, fileName, mode);
 	#else
-		fopen(fileName, mode);
+		fp = fopen(fileName, mode);
 	#endif
 	}
 	if(fp)

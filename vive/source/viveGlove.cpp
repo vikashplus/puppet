@@ -1251,13 +1251,13 @@ void qpos_from_site_pose_via_mocap(mjModel* m,
 
         // find IK_body
         int ik_bid = mj_name2id(m_mocap, mjOBJ_BODY, opt->ik_body_name);
-        if(vive_controller_bid==-1)
+        if(ik_bid==-1)
             mju_error_s("Provided ik_body_name (%s) not found", opt->ik_body_name);
 
         // Set up the IK equality constraints with the mocap and the IK body
         for (int ieq=0; ieq<m_mocap->neq; ieq++)
         {
-            if(m_mocap->eq_type[ieq]==mjEQ_WELD)
+            if(m_mocap->eq_type[ieq]==mjtEq::mjEQ_WELD)
             {
                 bool ik_equality_refresh = false;
 
@@ -1356,6 +1356,9 @@ void qpos_from_site_pose_via_mocap(mjModel* m,
 void physics(bool& run)
 {
     printf("Physics thread started\n");
+    std::cout << "turning gravity off\n";
+    m->opt.gravity[2] = 0;
+    std::cout << "verify: " << m->opt.gravity[0] << " " <<  m->opt.gravity[1] << " " <<  m->opt.gravity[2] << std::endl;
 
 #ifdef __unix // Real robot communication
     double robostate[]{0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
@@ -1384,12 +1387,12 @@ void physics(bool& run)
 
                 for(int i=0; i<7; ++i)
                 {
-                    d->qpos[i] = robostate[i];
-                    //d->ctrl[i] = robostate[i]; // assumed to use positional ctrl
+                    //d->qpos[i] = robostate[i];
+                    d->ctrl[i] = robostate[i]; // assumed to use positional ctrl
                     // TODO: debug
                 }
-                d->qpos[7] = robostate[7] / 2;
-                d->qpos[8] = robostate[8] / 2;
+                d->ctrl[7] = robostate[7] / 2;
+                d->ctrl[8] = robostate[8] / 2;
                 mj_forward(m, d);
 
                 if(strcmp(opt->ik_body_name, "none")==0)
@@ -1518,16 +1521,16 @@ void physics(bool& run)
         // periodically send command to the real robot
         if(mj_step_counter % opt->cmd_freq == 0 && opt->use_real_robot)
         {
-            if(init_flag_mocap)
-            {
-                for(int i=0; i<7; ++i) robocmd[i] = d_mocap->qpos[i];
-                robocmd[7] = d_mocap->qpos[7] + d_mocap->qpos[8];
-            }
-            else
-            {
-                for(int i=0; i<7; ++i) robocmd[i] = d->qpos[i];
-                robocmd[7] = d->qpos[7] + d->qpos[8];
-            }
+            //if(init_flag_mocap)
+            //{
+            //    for(int i=0; i<7; ++i) robocmd[i] = d_mocap->qpos[i];
+            //    robocmd[7] = d_mocap->qpos[7] + d_mocap->qpos[8];
+            //}
+            //else
+            //{
+	    for(int i=0; i<7; ++i) robocmd[i] = d->qpos[i];
+	    robocmd[7] = d->qpos[7] + d->qpos[8];
+            //}
             memcpy(robocmd_bytes, &robocmd, sizeof robocmd);    // send data
             redis_ptr->set("robocmd", sw::redis::StringView(robocmd_bytes, sizeof robocmd));
             //if (mj_step_counter % 50 == 0)
@@ -1611,7 +1614,7 @@ int main(int argc, char** argv)
 
     // configure Redis
 #ifdef __unix__
-	sw::redis::Redis redis_store = sw::redis::Redis("tcp://127.0.0.1:6379");
+	sw::redis::Redis redis_store = sw::redis::Redis("tcp://172.16.0.3:6379");
 	redis_ptr = &redis_store;
 #endif
 

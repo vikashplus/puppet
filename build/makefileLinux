@@ -1,9 +1,9 @@
-PUPPET_PATH = /home/franka/dev/puppet
-MJ_PATH = /home/franka/.mujoco/mujoco200
+PUPPET_PATH = /home/robomonitor03/puppet_code/puppet
+MJ_PATH = /home/robomonitor03/.mujoco/mujoco210
 
 UTILS=../vive/source/utils.cpp
 MUJOCO = -I$(MJ_PATH)/include -L$(MJ_PATH)/bin
-LDFLAGS = -lmujoco200 -lGL -lglew -lpthread
+LDFLAGS = -lmujoco210 -lGL -lglew -lpthread
 LIBGLFW = $(MJ_PATH)/bin/libglfw.so.3
 LIBREDIS = /usr/local/lib/libredis++.a -lhiredis
 GLOVE_PATH = $(PUPPET_PATH)/cyberglove

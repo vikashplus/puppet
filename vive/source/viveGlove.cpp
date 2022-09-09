@@ -1615,7 +1615,7 @@ int main(int argc, char** argv)
 
     // configure Redis
 #ifdef __unix__
-	sw::redis::Redis redis_store = sw::redis::Redis("tcp://172.16.0.3:6379");
+	sw::redis::Redis redis_store = sw::redis::Redis("tcp://172.16.0.4:6379");
 	redis_ptr = &redis_store;
 #endif
 

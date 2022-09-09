@@ -5,3 +5,4 @@ build/puppet
 build/playlog
 MUJOCO_LOG.TXT
 .vscode
+*.rdb

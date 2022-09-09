@@ -758,7 +758,7 @@ void v_update(void)
                 else if( button==vBUTTON_SIDE )
                 {
                     // user can trigger custom action here
-					trackMocap[n] = !trackMocap[n];
+					redis_ptr->set("franka-cmd", "="); // record keyframe
                 }
 
                 break;
@@ -1387,6 +1387,7 @@ void physics(bool& run)
 
                 for(int i=0; i<7; ++i)
                 {
+		    std::cout << "robotstate, index "<< i<< " : "<< robostate[i] << std::endl;
                     //d->qpos[i] = robostate[i];
                     d->ctrl[i] = robostate[i]; // assumed to use positional ctrl
                     // TODO: debug

@@ -1,9 +1,9 @@
 # Cyber Glove Driver 
-Cyber glove is 'officially' supported only on windows. The current driver is developed for windows with a planned (probable) upgrade to Unix.
+CyberGlove 'official' supported is limited to windows. The current CyberGlove driver for PUPPET is developed for windows. (This driver is platform agnostic. There are evidence that CyberGlove API works on unix. In principle, PUPPET's CyberGlove support can be extened to unix. This is in the wishlist)
 	
 ## Getting started 
 1. Power up cyber glove. Connect cyber glove to the mini USB cable hanging out the HTC headset. Wait for 5 seconds for the green boot up blinks.
-2. Every user needs to go through a 10 mins calibration process to get their personalized cyberglove calibration. Talk to Vikash if you need to get your calibration done. (It's done offline and is not part of the driver. Driver won't work without it)
+2. This repo contains a default calibration that works quite well for most individuals. (brain adapts fast to the provided calibration). Its possible to have your custom calibration. It takes about 10 mins to get a personalized cyberglove calibration. (WIP: there is an unmerged branch on the repo. Get in touch with Vikash if you want to attempt this.)
 
 ## Usage
 Navigate to `build/` folder. `puppet.exe <config_file>` is used for emersive visualization and interaction with the mujoco worlds using vive controller, vive tracker and cyberglove. Recoreded logs can be played-back/ video-recorded using playlog.exe. [Please refer here for more instructions](https://github.com/vikashplus/teleOp/tree/master/build#usage). 

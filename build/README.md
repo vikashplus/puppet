@@ -1,21 +1,23 @@
 # PUPPET installation
 
 ## Requirements
-Vive headset and a minimum of one active controller. Optional equipments include additional vive controllers, vive trackers, and cyberglove.
+Vive headset and a minimum of one active controller. Optionally additional vive controllers and vive trackers can also be added and used.
 
-## Build and install
-1. Add environment variable ["MUJOCOPATH"](..//gallery//adding_system_variables.jpg) to the `System Properties`
+## Build and install (windows)
+0. Download [MuJoCo](https://github.com/google-deepmind/mujoco/releases)
+1. Add environment variable ["MUJOCOPATH"](..//gallery//adding_system_variables.jpg) in the `System Properties` to point to the downloaded path.
 2. Open `x64 Native Tools Command Prompt` from visual studios.
-3. Type `SET MUJOCOPATH` to verify that the path is correctly set.
+3. Type `SET MUJOCOPATH` to verify that the path is correctly set and visible.
 3. Navigate to `build/` folder.
-4. Type `nmake` to build and install the project. It will compile two programs `puppet.exe` and `playlog.exe`.
-5. Use `nmake clean` if you need to clean the project installation. Note it doesn't clear recorded logs.
+4. Check `makefile` to ensure all paths are corrent.
+5. Type `nmake` to build and install the project. It will compile two programs *puppet.exe* and *playlog.exe*.
+6. Use `nmake clean` if you need to clean the project installation. Note it doesn't clear recorded logs.
 
 ## Usage
-1. puppet.exe is used for emersive visualization and interaction with the mujoco worlds.
-2. playlog.exe is can be used to replay recorded logs and dump raw video (Key F9 to start stop video recording) (pixel_format rgb24).   
+1. *puppet.exe* is used for emersive visualization and interaction with the mujoco worlds.
+2. *playlog.exe* is can be used to replay recorded logs and dump raw video (Key F9 to start stop video recording) (pixel_format rgb24).   
 
-Navigate to `build/` folder. Type `puppet.exe` or `playlog.exe` (without any arguments) for respective usage instructions. 
+Navigate to `build/` folder. Type *puppet.exe* or *playlog.exe* (without any arguments) for respective usage instructions. 
 
 **Note1**: Logs are dumped in mujoco's .mjl format. Refer [Mujoco documenation](http://www.mujoco.org/book/haptix.html#uiRecord) for details.  
 **Note2**: You can use [ffmpeg](https://ffmpeg.org/) to convert the raw video. Ensure that the video resolution and fps matches with the settings used while dumping raw video.
@@ -55,7 +57,7 @@ In addiiton to the usual Mujoco key bindings following Puppet specific bindings 
 ## Special cases 
 
 ### Controller/Mocap configuration
-Am xml with a mocap body called "mocap0/mocap1" gets associated with controller0/controller1 and places the controller in the "vTOOL_PULL" mode.
+A xml with a mocap body called "mocap0/mocap1" gets associated with controller0/controller1 by default and places the controller in the "vTOOL_PULL" mode.
 
 ### Fetch
 While the vive driver is general purpose, There are fetch-gripper specific utilities that are provided if the xml loaded has two actuators with following names: "r_gripper_finger_joint" and "l_gripper_finger_joint"

@@ -1,9 +1,11 @@
 # PUPPET
 
-This project brings together HTC Vive and Cyber Glove to enable teleOp in emersive VR with MuJoCo Scenes
+This project brings together [HTC Vive](https://www.vive.com/us/) and [CyberGlove](https://www.cyberglovesystems.com/) to enable tele operation capabilities in emersive vistual reality with [MuJoCo](https://mujoco.org/) Scenes.
 
 ## Installation 
-Detailed install instructions for emersive visualization and interaction with the mujoco worlds are found [here](build/). PUPPET also provides itegration with [cyberglove system](http://www.cyberglovesystems.com/) for teleoperation of [Adroit Manipulation Platform](https://github.com/vikashplus/Adroit). Detailed install instructions can be found [here](cyberglove/).
+Detailed install instructions of PUPPET for emersive visualization and interaction with the mujoco scenes are available [here](build/README.md).
+
+PUPPET also provides itegration with [CyberGlove system](http://www.cyberglovesystems.com/) for teleoperation of [Adroit Manipulation Platform](https://github.com/vikashplus/Adroit) which require additional installation steps outlined  [here](cyberglove/README.md).
 
 ## Citation
 

@@ -4,7 +4,7 @@
 //  Copyright (C) 2017 Roboti LLC  //
 //---------------------------------//
 
-#include "mujoco.h"
+#include "mujoco/mujoco.h"
 #include "glfw3.h"
 #include "stdio.h"
 #include <string>
@@ -197,9 +197,6 @@ void initMuJoCo(const char* filename, const char* logfile)
 	else
 		(std::string(mujocoPath));
 	sprintf(licensePath, "%s\\mjkey.txt", mujocoPath);
-
-	if(!mj_activate(licensePath))
-		printf("ERROR:: Failed to activate license\n");
 
     // load and compile model
     char error[1000] = "Could not load binary model";
@@ -803,7 +800,7 @@ void render(GLFWwindow* window)
                                  (mjtNum)R.width/(mjtNum)R.height, 
                                  (mjtNum)lastx/(mjtNum)R.width, 
                                  (mjtNum)(R.height-lasty)/(mjtNum)R.height, 
-                                 &scn, pos, &selgeom, NULL);
+                                 &scn, pos, &selgeom, NULL, NULL);
         //int selbody = (selgeom>=0 ? m->geom_bodyid[selgeom] : 0);
 
         // set lookat point

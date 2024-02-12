@@ -9,7 +9,7 @@
 ================================================================= */
 
 
-#include "mujoco.h"
+#include "mujoco/mujoco.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include <string>
@@ -85,10 +85,6 @@ int initMuJoCo(const char* filename, int width2, int height)
 		(std::string(mujocoPath));
 	sprintf(licensePath, "%s\\mjkey.txt", mujocoPath);
 
-    // activate
-	if(!mj_activate(licensePath))
-	    return 0;
-
     // load and compile
     char error[1000] = "Could not load binary model";
     if( strlen(filename)>4 && !strcmp(filename+strlen(filename)-4, ".mjb") )
@@ -139,7 +135,6 @@ void closeMuJoCo(void)
     mj_deleteModel(m);
     mjr_freeContext(&con);
     mjv_freeScene(&scn);
-    mj_deactivate();
 }
 
 // keyboard
